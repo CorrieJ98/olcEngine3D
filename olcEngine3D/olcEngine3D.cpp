@@ -31,8 +31,8 @@ public:
 
 private:
 	mesh meshCube;
-	mesh meshTetrahedron
-	matrix4x4 matProjection;
+	mesh meshTetrahedron;
+	matrix4x4 projection_matrix;
 
 	float rotAngle;
 
@@ -90,15 +90,15 @@ public:
 			// FACE A 1-2-3
 				{1.0f, -1.0f, -1.0f,	-1.0f,-1.0f,1.0f,		1.0f,1.0f,1.0f},
 
-			// FACE B 1-4-2
-				{1.0f, -1.0f, -1.0f,   -1.0f, 1.0f, -1.0f,		-1.0f,-1.0f,1.0f},
+				// FACE B 1-4-2
+					{1.0f, -1.0f, -1.0f,   -1.0f, 1.0f, -1.0f,		-1.0f,-1.0f,1.0f},
 
-			// FACE C 4-3-2
-				{-1.0f, 1.0f, -1.0f,    1.0f,1.0f,1.0f,    -1.0f,-1.0f,1.0f},
+					// FACE C 4-3-2
+						{-1.0f, 1.0f, -1.0f,    1.0f,1.0f,1.0f,    -1.0f,-1.0f,1.0f},
 
-			// FACE D 1-4-3
-				{1.0f, -1.0f, -1.0f,    -1.0f, 1.0f, -1.0f,    1.0f,1.0f,1.0f},
-		}
+						// FACE D 1-4-3
+							{1.0f, -1.0f, -1.0f,    -1.0f, 1.0f, -1.0f,    1.0f,1.0f,1.0f},
+		};
 
 		// Projection Matrix
 		float zNear = 0.1f;
@@ -107,12 +107,12 @@ public:
 		float aspect_ratio = (float)ScreenHeight() / (float)ScreenWidth();
 		float fov_radians = 1.0f / tanf(fov * 0.5f / 180.0f * 3.14159);
 
-		matProjection.m[0][0] = aspect_ratio * fov_radians;
-		matProjection.m[1][1] = fov_radians;
-		matProjection.m[2][2] = zFar / (zFar - zNear);
-		matProjection.m[3][2] = (-zFar * zNear) / (zFar - zNear);
-		matProjection.m[2][3] = 1.0f;
-		matProjection.m[3][3] = 0.0f;
+		projection_matrix.m[0][0] = aspect_ratio * fov_radians;
+		projection_matrix.m[1][1] = fov_radians;
+		projection_matrix.m[2][2] = zFar / (zFar - zNear);
+		projection_matrix.m[3][2] = (-zFar * zNear) / (zFar - zNear);
+		projection_matrix.m[2][3] = 1.0f;
+		projection_matrix.m[3][3] = 0.0f;
 
 		return true;
 	}
@@ -163,9 +163,9 @@ public:
 			triTranslated.p[2].z = triRotatedZX.p[2].z + 3.0f;
 
 			// Project triangles from 3D onto 2D plane (ie screen)
-			MultiplyMatrices(triTranslated.p[0], triProjected.p[0], matProjection);
-			MultiplyMatrices(triTranslated.p[1], triProjected.p[1], matProjection);
-			MultiplyMatrices(triTranslated.p[2], triProjected.p[2], matProjection);
+			MultiplyMatrices(triTranslated.p[0], triProjected.p[0], projection_matrix);
+			MultiplyMatrices(triTranslated.p[1], triProjected.p[1], projection_matrix);
+			MultiplyMatrices(triTranslated.p[2], triProjected.p[2], projection_matrix);
 
 			// Scale into view
 			triProjected.p[0].x += 1.0f; triProjected.p[0].y += 1.0f;
