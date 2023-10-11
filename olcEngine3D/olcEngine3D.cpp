@@ -12,7 +12,7 @@ struct mesh {
 	std::vector<triangle> tris;
 };
 
-struct mat4x4 {
+struct matrix4x4 {
 	float m[4][4];
 };
 
@@ -30,9 +30,9 @@ public:
 
 private:
 	mesh meshCube;
-	mat4x4 matProjection;
+	matrix4x4 matProjection;
 
-	void MultiplyMatrixVector(vec3d &in, vec3d &out, mat4x4 &mat) {
+	void MultiplyMatrixVector(vec3d &in, vec3d &out, matrix4x4 &mat) {
 		out.x = in.x * mat.m[0][0] + in.y * mat.m[1][0] + in.z * mat.m[2][0] + mat.m[3][0];
 		out.y = in.x * mat.m[0][1] + in.y * mat.m[1][1] + in.z * mat.m[2][1] + mat.m[3][1];
 		out.z = in.x * mat.m[0][2] + in.y * mat.m[1][2] + in.z * mat.m[2][2] + mat.m[3][2];
@@ -49,17 +49,18 @@ public:
 	bool OnUserCreate() override
 	{
 		meshCube.tris = {
-		// NORTH
-			{0.0f,0.0f,1.0f,	0.0f,1.0f,1.0f,		1.0f,1.0f,1.0f},
-			{0.0f,0.0f,1.0f,	1.0f,1.0f,1.0f,		1.0f,0.0f,1.0f},
 
 		// SOUTH
 			{0.0f,0.0f,0.0f,	0.0f,1.0f,0.0f,		1.0f,1.0f,0.0f},
-			{0.0f,0.0f,0.0f,	1.0f,1.0f,0.0f,		1.0f,1.0f,1.0f},
+			{0.0f,0.0f,0.0f,	1.0f,1.0f,0.0f,		1.0f,0.0f,0.0f},
 
 		// EAST
 			{1.0f,0.0f,0.0f,	1.0f,1.0f,0.0f,		1.0f,1.0f,1.0f},
 			{1.0f,0.0f,0.0f,	1.0f,1.0f,1.0f,		1.0f,0.0f,1.0f},
+
+		// NORTH
+			{0.0f,0.0f,1.0f,	0.0f,1.0f,1.0f,		1.0f,1.0f,1.0f},
+			{0.0f,0.0f,1.0f,	1.0f,1.0f,1.0f,		1.0f,0.0f,1.0f},
 
 		// WEST
 			{0.0f,0.0f,1.0f,	0.0f,1.0f,1.0f,		0.0f,1.0f,0.0f},
@@ -79,7 +80,7 @@ public:
 		float zFar = 1000.0f;
 		float fov = 90.0f;
 		float aspect_ratio = (float)ScreenHeight() / (float)ScreenWidth();
-		float fov_radians = 1.0f / tanf(fov * 0.5f / 180.0f * 3.141592653f);
+		float fov_radians = 1.0f / tanf(fov * 0.5f / 180.0f * 3.14159);
 
 		matProjection.m[0][0] = aspect_ratio * fov_radians;
 		matProjection.m[1][1] = fov_radians;
