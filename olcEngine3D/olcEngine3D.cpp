@@ -185,7 +185,10 @@ public:
 			normal.x /= pythagResult; normal.y /= pythagResult; normal.z /= pythagResult;
 
 			// Project triangles from 3D onto 2D plane using projection matrix (ie screen)
-			if (normal.z < 0) {
+			//if (normal.z < 0) primitive culling OBSOLETE
+			if(normal.x * (triTranslated.p[0].x - camera.x) +
+			   normal.y * (triTranslated.p[0].y - camera.y) +
+			   normal.z * (triTranslated.p[0].z - camera.z) < 0){
 
 				MultiplyMatrices(triTranslated.p[0], triProjected.p[0], projection_matrix);
 				MultiplyMatrices(triTranslated.p[1], triProjected.p[1], projection_matrix);
