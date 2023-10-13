@@ -1,5 +1,4 @@
 #include "olcConsoleGameEngine.h"
-using namespace std;
 
 struct vec3d {
 	float x, y, z;
@@ -10,7 +9,7 @@ struct triangle {
 };
 
 struct mesh {
-	vector<triangle> tris;
+	std::vector<triangle> tris;
 };
 
 struct matrix4x4 {
@@ -33,6 +32,7 @@ private:
 	mesh meshCube;
 	mesh meshTetrahedron;
 	matrix4x4 projection_matrix;
+	vec3d camera;
 
 	float rotAngle;
 
@@ -82,7 +82,6 @@ public:
 				{ 1.0f, 0.0f, 1.0f,    0.0f, 0.0f, 0.0f,    1.0f, 0.0f, 0.0f },
 
 		};
-
 		meshTetrahedron.tris = {
 			// VERTS
 			// 1(1.0f, -1.0f, -1.0f)	2(-1.0f,-1.0f,1.0f)		3(1.0f,1.0f,1.0f)	4(-1.0f, 1.0f, -1.0f)
@@ -132,6 +131,8 @@ public:
 		matRotZ.m[2][2] = 1;
 		matRotZ.m[3][3] = 1;
 
+
+
 		// X-Axis Rotation Matrix
 		matRotX.m[0][0] = 1;
 		matRotX.m[1][1] = cosf(rotAngle * 0.5f);
@@ -139,6 +140,7 @@ public:
 		matRotX.m[2][1] = -sinf(rotAngle * 0.5f);
 		matRotX.m[2][2] = cosf(rotAngle * 0.5f);
 		matRotX.m[3][3] = 1;
+
 
 
 		// Draw Triangles
@@ -162,21 +164,45 @@ public:
 			triTranslated.p[1].z = triRotatedZX.p[1].z + 3.0f;
 			triTranslated.p[2].z = triRotatedZX.p[2].z + 3.0f;
 
-			// Project triangles from 3D onto 2D plane (ie screen)
-			MultiplyMatrices(triTranslated.p[0], triProjected.p[0], projection_matrix);
-			MultiplyMatrices(triTranslated.p[1], triProjected.p[1], projection_matrix);
-			MultiplyMatrices(triTranslated.p[2], triProjected.p[2], projection_matrix);
 
-			// Scale into view
-			triProjected.p[0].x += 1.0f; triProjected.p[0].y += 1.0f;
-			triProjected.p[1].x += 1.0f; triProjected.p[1].y += 1.0f;
-			triProjected.p[2].x += 1.0f; triProjected.p[2].y += 1.0f;
-			triProjected.p[0].x *= 0.5f * (float)ScreenWidth();
-			triProjected.p[0].y *= 0.5f * (float)ScreenHeight();
-			triProjected.p[1].x *= 0.5f * (float)ScreenWidth();
-			triProjected.p[1].y *= 0.5f * (float)ScreenHeight();
-			triProjected.p[2].x *= 0.5f * (float)ScreenWidth();
-			triProjected.p[2].y *= 0.5f * (float)ScreenHeight();
+
+			// Get Normals
+			vec3d normal, line1, line2;
+			line1.x = triTranslated.p[1].x - triTranslated.p[0].x;
+			line1.y = triTranslated.p[1].y - triTranslated.p[0].y;
+			line1.z = triTranslated.p[1].z - triTranslated.p[0].z;
+
+			line2.x = triTranslated.p[2].x - triTranslated.p[0].x;
+			line2.y = triTranslated.p[2].y - triTranslated.p[0].y;
+			line2.z = triTranslated.p[2].z - triTranslated.p[0].z;
+
+			normal.x = line1.y * line2.z - line1.z * line2.y;
+			normal.y = line1.z * line2.x - line1.x * line2.z;
+			normal.z = line1.x * line2.y - line1.y * line2.x;
+
+			// Normalize the normals
+			float pythagResult = sqrt(normal.x * normal.x + normal.y * normal.y + normal.z * normal.z);
+			normal.x /= pythagResult; normal.y /= pythagResult; normal.z /= pythagResult;
+
+			// Project triangles from 3D onto 2D plane using projection matrix (ie screen)
+			if (normal.z < 0) {
+
+				MultiplyMatrices(triTranslated.p[0], triProjected.p[0], projection_matrix);
+				MultiplyMatrices(triTranslated.p[1], triProjected.p[1], projection_matrix);
+				MultiplyMatrices(triTranslated.p[2], triProjected.p[2], projection_matrix);
+
+				// Scale into view
+				triProjected.p[0].x += 1.0f; triProjected.p[0].y += 1.0f;
+				triProjected.p[1].x += 1.0f; triProjected.p[1].y += 1.0f;
+				triProjected.p[2].x += 1.0f; triProjected.p[2].y += 1.0f;
+				triProjected.p[0].x *= 0.5f * (float)ScreenWidth();
+				triProjected.p[0].y *= 0.5f * (float)ScreenHeight();
+				triProjected.p[1].x *= 0.5f * (float)ScreenWidth();
+				triProjected.p[1].y *= 0.5f * (float)ScreenHeight();
+				triProjected.p[2].x *= 0.5f * (float)ScreenWidth();
+				triProjected.p[2].y *= 0.5f * (float)ScreenHeight();
+			}
+
 
 			// Rasterize triangle
 			DrawTriangle(triProjected.p[0].x, triProjected.p[0].y,
