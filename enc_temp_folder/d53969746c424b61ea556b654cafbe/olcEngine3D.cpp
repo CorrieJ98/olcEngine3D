@@ -222,9 +222,9 @@ public:
 			normal.x /= l; normal.y /= l; normal.z /= l;
 
 			// Culling
-			if (normal.x * (triTranslated.p[0].x - camera.x) +
-				normal.y * (triTranslated.p[0].y - camera.y) +
-				normal.z * (triTranslated.p[0].z - camera.z) < 0.0f) {
+			if(normal.x * (triTranslated.p[0].x - camera.x) +
+			   normal.y * (triTranslated.p[0].y - camera.y) +
+			   normal.z * (triTranslated.p[0].z - camera.z) < 0.0f){
 
 				// Illuminate the cube
 				vec3d light_direction = { 0.0f,0.0f,-1.0f };
@@ -234,7 +234,6 @@ public:
 
 				float dp = normal.x * light_direction.x + normal.y * light_direction.y + normal.z * light_direction.z;
 
-				// Get colour as required using dot product
 				CHAR_INFO col = GetColour(dp);
 				triTranslated.colour = col.Attributes;
 				triTranslated.symbol = col.Char.UnicodeChar;
@@ -256,22 +255,22 @@ public:
 				triProjected.p[1].y *= 0.5f * (float)ScreenHeight();
 				triProjected.p[2].x *= 0.5f * (float)ScreenWidth();
 				triProjected.p[2].y *= 0.5f * (float)ScreenHeight();
-
-
-
-				// Rasterize triangle
-				FillTriangle(triProjected.p[0].x, triProjected.p[0].y,
-					triProjected.p[1].x, triProjected.p[1].y,
-					triProjected.p[2].x, triProjected.p[2].y,
-					triProjected.symbol, triProjected.colour);
-
-				/*
-				DrawTriangle(triProjected.p[0].x, triProjected.p[0].y,
-					triProjected.p[1].x, triProjected.p[1].y,
-					triProjected.p[2].x, triProjected.p[2].y,
-					PIXEL_SOLID, FG_WHITE);
-				*/
 			}
+
+
+			// Rasterize triangle
+			FillTriangle(triProjected.p[0].x, triProjected.p[0].y,
+				triProjected.p[1].x, triProjected.p[1].y,
+				triProjected.p[2].x, triProjected.p[2].y,
+				triProjected.symbol, triProjected.colour);
+
+			/*
+			DrawTriangle(triProjected.p[0].x, triProjected.p[0].y,
+				triProjected.p[1].x, triProjected.p[1].y,
+				triProjected.p[2].x, triProjected.p[2].y,
+				PIXEL_SOLID, FG_WHITE);
+			*/
+
 		}
 
 		return true;
