@@ -1,4 +1,10 @@
 #include "olcConsoleGameEngine.h"
+#include <fstream>
+#include <strstream>
+#include <algorithm>
+#include <iostream>
+
+using namespace std;
 
 struct vec3d {
 	float x, y, z;
@@ -12,7 +18,51 @@ struct triangle {
 };
 
 struct mesh {
-	std::vector<triangle> tris;
+
+	vector<triangle> tris;
+
+	bool LoadFromObjectFile(string sFilename)
+	{
+		ifstream file(sFilename);
+		if (!file.is_open())
+			return false;
+
+		// Local cache of verts
+		vector<vec3d> verts;
+
+		// loop through .obj file for relevant data
+		while (!file.eof())
+		{
+			// assuming no line has >128 chars
+			char line[128];
+			file.getline(line, 128);
+
+			char junk;
+			strstream s;
+			s << line;
+
+
+
+			// add vert values to cache
+			if (line[0] == 'v')
+			{
+				vec3d v;
+				s >> junk >> v.x >> v.y >> v.z;
+				verts.push_back(v);
+			}
+
+
+			// build tris
+			if (line[0] == 'f')
+			{
+				int f[3];
+				s >> junk >> f[0] >> f[1] >> f[2];
+				tris.push_back({ verts[f[0] - 1], verts[f[1] - 1], verts[f[2] - 1] });
+			}
+		}
+
+		return true;
+	}
 };
 
 struct matrix4x4 {
@@ -33,7 +83,6 @@ public:
 
 private:
 	mesh meshCube;
-	mesh meshTetrahedron;
 	matrix4x4 projection_matrix;
 	vec3d camera;
 
@@ -89,7 +138,9 @@ private:
 public:
 	bool OnUserCreate() override
 	{
-		meshCube.tris = {
+
+		// Obsolete hard coding of vertices
+		/*meshCube.tris = {
 			// SOUTH IS THE CLOSEST FACE PERPENDICULAR TO THE SCREEN
 			// FACES ORIENTED RELATIVE TO THEIR NORMALS
 			// TRIS (triangles ie 3 Vertices) ARE TAKEN CLOCKWISE FROM LOWER LEFT QUADRANT
@@ -118,23 +169,10 @@ public:
 				{ 1.0f, 0.0f, 1.0f,    0.0f, 0.0f, 1.0f,    0.0f, 0.0f, 0.0f },
 				{ 1.0f, 0.0f, 1.0f,    0.0f, 0.0f, 0.0f,    1.0f, 0.0f, 0.0f },
 
-		};
-		meshTetrahedron.tris = {
-			// VERTS
-			// 1(1.0f, -1.0f, -1.0f)	2(-1.0f,-1.0f,1.0f)		3(1.0f,1.0f,1.0f)	4(-1.0f, 1.0f, -1.0f)
+		}; */
 
-			// FACE A Verts 1-2-3
-				{1.0f, -1.0f, -1.0f,	-1.0f,-1.0f,1.0f,		1.0f,1.0f,1.0f},
-
-			// FACE B Verts 1-4-2
-				{1.0f, -1.0f, -1.0f,   -1.0f, 1.0f, -1.0f,		-1.0f,-1.0f,1.0f},
-
-			// FACE C Verts 4-3-2
-				{-1.0f, 1.0f, -1.0f,    1.0f,1.0f,1.0f,    -1.0f,-1.0f,1.0f},
-
-			// FACE D Verts 1-4-3
-				{1.0f, -1.0f, -1.0f,    -1.0f, 1.0f, -1.0f,    1.0f,1.0f,1.0f},
-		};
+		// .obj file import
+		meshCube.LoadFromObjectFile("spaceship.obj");
 
 		// Projection Matrix
 		float zNear = 0.1f;
@@ -178,6 +216,7 @@ public:
 		matRotX.m[2][2] = cosf(rotAngle * 0.5f);
 		matRotX.m[3][3] = 1;
 
+		vector<triangle> vecTrianglesToRaster;
 
 
 		// Draw Triangles
@@ -197,9 +236,9 @@ public:
 
 			// Offset on Z-Axis as to be inside view
 			triTranslated = triRotatedZX;
-			triTranslated.p[0].z = triRotatedZX.p[0].z + 3.0f;
-			triTranslated.p[1].z = triRotatedZX.p[1].z + 3.0f;
-			triTranslated.p[2].z = triRotatedZX.p[2].z + 3.0f;
+			triTranslated.p[0].z = triRotatedZX.p[0].z + 5.0f;
+			triTranslated.p[1].z = triRotatedZX.p[1].z + 5.0f;
+			triTranslated.p[2].z = triRotatedZX.p[2].z + 5.0f;
 
 
 
@@ -273,10 +312,8 @@ public:
 				*/
 			}
 		}
-
 		return true;
 	}
-
 };
 
 
