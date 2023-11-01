@@ -7,7 +7,7 @@
 using namespace std;
 
 struct vec3d {
-	float x, y, z;
+	float x, y, z, w;
 };
 
 struct triangle {
@@ -85,18 +85,129 @@ private:
 	mesh meshCube;
 	matrix4x4 projection_matrix;
 	vec3d camera;
-
 	float rotAngle;
+	const float PI = 3.141592;
 
-	void MultiplyMatrices(vec3d &in, vec3d &out, matrix4x4 &mat) {
-		out.x = in.x * mat.m[0][0] + in.y * mat.m[1][0] + in.z * mat.m[2][0] + mat.m[3][0];
-		out.y = in.x * mat.m[0][1] + in.y * mat.m[1][1] + in.z * mat.m[2][1] + mat.m[3][1];
-		out.z = in.x * mat.m[0][2] + in.y * mat.m[1][2] + in.z * mat.m[2][2] + mat.m[3][2];
-		float w = in.x* mat.m[0][3] + in.y * mat.m[1][3] + in.z * mat.m[2][3] + mat.m[3][3];
 
-		if (w != 0) {
-			out.x /= w; out.y /= w; out.z /= w;
-		}
+	// ::::: MATRIX MATH :::::
+	// :: Matrices
+	matrix4x4 Matrix_MakeIdentity() {
+		matrix4x4 id;
+		id.m[0][0] = 1.0f;
+		id.m[1][1] = 1.0f;
+		id.m[2][2] = 1.0f;
+		id.m[3][3] = 1.0f;
+		return id;
+	}
+
+	matrix4x4 Matrix_RotAxisX(float angleRad) {
+		matrix4x4 matRotX;
+		matRotX.m[0][0] = 1.0f;
+		matRotX.m[1][1] = cosf(angleRad);
+		matRotX.m[1][2] = sinf(angleRad);
+		matRotX.m[2][1] = -sinf(angleRad);
+		matRotX.m[2][2] = cosf(angleRad);
+		matRotX.m[3][3] = 1.0f;
+		return matRotX;
+	}
+
+	matrix4x4 Matrix_RotAxisZ(float angleRad) {
+		matrix4x4 matRotZ;
+		matRotZ.m[0][0] = cosf(angleRad);
+		matRotZ.m[0][1] = sinf(angleRad);
+		matRotZ.m[1][0] = -sinf(angleRad);
+		matRotZ.m[1][1] = cosf(angleRad);
+		matRotZ.m[2][2] = 1.0f;
+		matRotZ.m[3][3] = 1.0f;
+	}
+
+	matrix4x4 Matrix_RotAxisY(float angleRad) {
+		matrix4x4 matRotY;
+		matRotY.m[0][0] = cosf(angleRad);
+		matRotY.m[0][2] = sinf(angleRad);
+		matRotY.m[2][0] = -sinf(angleRad);
+		matRotY.m[1][1] = 1.0f;
+		matRotY.m[2][2] = cosf(angleRad);
+		matRotY.m[3][3] = 1.0f;
+	}
+
+	matrix4x4 Matrix_MakeTranslate(float x, float y, float z) {
+		matrix4x4 matT;
+		matT.m[0][0] = 1.0f;
+		matT.m[1][1] = 1.0f;
+		matT.m[2][2] = 1.0f;
+		matT.m[3][3] = 1.0f;
+		matT.m[3][0] = x;
+		matT.m[3][1] = y;
+		matT.m[3][2] = z;
+		return matT;
+	}
+
+	matrix4x4 Matrix_MakeProjection(float fov, float aspect_ratio, float zNear, float zFar){
+		float fovRad = 1.0f / tanf(fov * 0.5f / 180.0f * PI);
+		matrix4x4 matProj;
+		matProj.m[0][0] = aspect_ratio * fovRad;
+		matProj.m[1][1] = fovRad;
+		matProj.m[2][2] = zFar / (zFar - zNear);
+		matProj.m[3][2] = (-zFar * zNear) / (zFar - zNear);
+		matProj.m[2][3] = 1.0f;
+		matProj.m[3][3] = 0.0f;
+		return matProj;
+	}
+
+	matrix4x4 Matrix_MultiplyMatrix(matrix4x4& m1, matrix4x4& m2) {
+		matrix4x4 mout;
+		for (int c = 0; c < 4; c++)
+			for (int r = 0; r < 4; r++)
+				mout.m[r][c] = m1.m[r][0] * m2.m[0][c] + m1.m[r][1] * m2.m[1][c] + m1.m[r][2] * m2.m[2][c] + m1.m[r][3] * m2.m[3][c];
+		return mout;
+	}
+
+	vec3d Matrix_MultiplyVector(matrix4x4& m, vec3d& vin) {
+		vec3d vout;
+		vout.x = vin.x * m.m[0][0] + vin.y * m.m[1][0] + vin.z * m.m[2][0] + vin.w * m.m[3][0];
+		vout.y = vin.x * m.m[0][1] + vin.y * m.m[1][1] + vin.z * m.m[2][1] + vin.w * m.m[3][1];
+		vout.z = vin.x * m.m[0][2] + vin.y * m.m[1][2] + vin.z * m.m[2][2] + vin.w * m.m[3][2];
+		vout.w = vin.x * m.m[0][3] + vin.y * m.m[1][3] + vin.z * m.m[2][3] + vin.w * m.m[3][3];
+		return vout;
+	}
+
+	// :: Vectors
+	vec3d Vector_Add(vec3d& v1, vec3d& v2) {
+		return { v1.x + v2.x, v1.y + v2.y, v1.z + v2.z };
+	}
+
+	vec3d Vector_Subtract(vec3d& v1, vec3d& v2) {
+		return { v1.x - v2.x, v1.y - v2.y, v1.z - v2.z };
+	}
+
+	vec3d Vector_Multiply(vec3d& v1, float k) {
+		return { v1.x * k, v1.y * k, v1.z * k };
+	}
+
+	vec3d Vector_Divide(vec3d& v1,float k) {
+		return { v1.x / k, v1.y / k, v1.z / k };
+	}
+
+	float Vector_DotProduct(vec3d& v1, vec3d& v2) {
+		return { v1.x * v2.x + v1.y * v2.y + v1.z * v2.z };
+	}
+
+	float Vector_Length(vec3d& vec) {
+		return sqrtf(Vector_DotProduct(vec, vec));
+	}
+
+	vec3d Vector_Normalise(vec3d &vec) {
+		float l = Vector_Length(vec);
+		return { vec.x / l, vec.y / l, vec.z / l };
+	}
+
+	vec3d Vector_CrossProduct(vec3d& v1, vec3d& v2) {
+		vec3d v;
+		v.x = v1.y * v2.z - v1.z * v2.y;
+		v.y = v1.z * v2.x - v1.x * v2.z;
+		v.z = v1.x * v2.y - v1.y * v2.x;
+		return v;
 	}
 
 
@@ -138,56 +249,8 @@ private:
 public:
 	bool OnUserCreate() override
 	{
-
-		// Obsolete hard coding of vertices
-		/*meshCube.tris = {
-			// SOUTH IS THE CLOSEST FACE PERPENDICULAR TO THE SCREEN
-			// FACES ORIENTED RELATIVE TO THEIR NORMALS
-			// TRIS (triangles ie 3 Vertices) ARE TAKEN CLOCKWISE FROM LOWER LEFT QUADRANT
-
-			// SOUTH FACE
-				{ 0.0f, 0.0f, 0.0f,    0.0f, 1.0f, 0.0f,    1.0f, 1.0f, 0.0f },
-				{ 0.0f, 0.0f, 0.0f,    1.0f, 1.0f, 0.0f,    1.0f, 0.0f, 0.0f },
-
-			// EAST FACE
-				{ 1.0f, 0.0f, 0.0f,    1.0f, 1.0f, 0.0f,    1.0f, 1.0f, 1.0f },
-				{ 1.0f, 0.0f, 0.0f,    1.0f, 1.0f, 1.0f,    1.0f, 0.0f, 1.0f },
-
-			// NORTH FACE
-				{ 1.0f, 0.0f, 1.0f,    1.0f, 1.0f, 1.0f,    0.0f, 1.0f, 1.0f },
-				{ 1.0f, 0.0f, 1.0f,    0.0f, 1.0f, 1.0f,    0.0f, 0.0f, 1.0f },
-
-			// WEST FACE
-				{ 0.0f, 0.0f, 1.0f,    0.0f, 1.0f, 1.0f,    0.0f, 1.0f, 0.0f },
-				{ 0.0f, 0.0f, 1.0f,    0.0f, 1.0f, 0.0f,    0.0f, 0.0f, 0.0f },
-
-			// TOP FACE
-				{ 0.0f, 1.0f, 0.0f,    0.0f, 1.0f, 1.0f,    1.0f, 1.0f, 1.0f },
-				{ 0.0f, 1.0f, 0.0f,    1.0f, 1.0f, 1.0f,    1.0f, 1.0f, 0.0f },
-
-			// BOTTOM FACE
-				{ 1.0f, 0.0f, 1.0f,    0.0f, 0.0f, 1.0f,    0.0f, 0.0f, 0.0f },
-				{ 1.0f, 0.0f, 1.0f,    0.0f, 0.0f, 0.0f,    1.0f, 0.0f, 0.0f },
-
-		}; */
-
 		// .obj file import
 		meshCube.LoadFromObjectFile("spaceship.obj");
-
-		// Projection Matrix
-		float zNear = 0.1f;
-		float zFar = 1000.0f;
-		float fov = 90.0f;
-		float aspect_ratio = (float)ScreenHeight() / (float)ScreenWidth();
-		float fov_radians = 1.0f / tanf(fov * 0.5f / 180.0f * 3.14159);
-
-		projection_matrix.m[0][0] = aspect_ratio * fov_radians;
-		projection_matrix.m[1][1] = fov_radians;
-		projection_matrix.m[2][2] = zFar / (zFar - zNear);
-		projection_matrix.m[3][2] = (-zFar * zNear) / (zFar - zNear);
-		projection_matrix.m[2][3] = 1.0f;
-		projection_matrix.m[3][3] = 0.0f;
-
 		return true;
 	}
 
@@ -197,27 +260,7 @@ public:
 
 		matrix4x4 matRotZ, matRotX;
 		rotAngle += 1.0f * elapsedTime;
-
-		// Z-Axis Rotation Matrix 
-		matRotZ.m[0][0] = cosf(rotAngle);
-		matRotZ.m[0][1] = sinf(rotAngle);
-		matRotZ.m[1][0] = -sinf(rotAngle);
-		matRotZ.m[1][1] = cosf(rotAngle);
-		matRotZ.m[2][2] = 1;
-		matRotZ.m[3][3] = 1;
-
-
-
-		// X-Axis Rotation Matrix
-		matRotX.m[0][0] = 1;
-		matRotX.m[1][1] = cosf(rotAngle * 0.5f);
-		matRotX.m[1][2] = sinf(rotAngle * 0.5f);
-		matRotX.m[2][1] = -sinf(rotAngle * 0.5f);
-		matRotX.m[2][2] = cosf(rotAngle * 0.5f);
-		matRotX.m[3][3] = 1;
-
 		vector<triangle> vecTrianglesToRaster;
-
 
 		// Draw Triangles
 		for (auto tri : meshCube.tris)
