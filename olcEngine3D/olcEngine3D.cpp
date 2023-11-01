@@ -3,6 +3,7 @@
 #include <strstream>
 #include <algorithm>
 #include <iostream>
+#include <conio.h>
 
 using namespace std;
 
@@ -326,6 +327,16 @@ public:
 
 
 		return true;
+	}
+
+	// TODO
+	bool DetectKeyboardInput() {
+		while (_kbhit()) {
+			_getch();
+		}
+
+
+		return false;
 	}
 };
 
