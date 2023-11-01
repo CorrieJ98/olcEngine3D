@@ -79,10 +79,8 @@ public:
 		m_sAppName = L"3D Demo";
 	}
 
-
-
 private:
-	mesh meshCube;
+	mesh meshObject;
 	matrix4x4 projection_matrix;
 	vec3d camera;
 	float rotAngle;
@@ -250,7 +248,7 @@ public:
 	bool OnUserCreate() override
 	{
 		// .obj file import
-		meshCube.LoadFromObjectFile("spaceship.obj");
+		meshObject.LoadFromObjectFile("spaceship.obj");
 		return true;
 	}
 
@@ -263,7 +261,7 @@ public:
 		vector<triangle> vecTrianglesToRaster;
 
 		// Draw Triangles
-		for (auto tri : meshCube.tris)
+		for (auto tri : meshObject.tris)
 		{
 			triangle triProjected, triTranslated, triRotatedZ, triRotatedZX;
 
