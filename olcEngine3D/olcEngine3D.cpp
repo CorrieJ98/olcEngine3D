@@ -4,6 +4,8 @@
 #include <algorithm>
 #include <iostream>
 
+// https://youtu.be/HXSuNxpCzdM?t=409
+
 using namespace std;
 
 struct vec3d {
@@ -249,6 +251,8 @@ public:
 	{
 		// .obj file import
 		meshObject.LoadFromObjectFile("spaceship.obj");
+
+		projection_matrix = Matrix_MakeProjection(90.0f, (float)ScreenHeight() / (float)ScreenWidth(), 0.1f, 1000.0f);
 		return true;
 	}
 
@@ -256,50 +260,45 @@ public:
 	{
 		Fill(0, 0, ScreenWidth(), ScreenHeight(), PIXEL_SOLID, FG_BLACK);
 
+		vector<triangle> vecTrianglesToRaster;
+
+		// ::::: Rotation Matrices :::::
 		matrix4x4 matRotZ, matRotX;
 		rotAngle += 1.0f * elapsedTime;
-		vector<triangle> vecTrianglesToRaster;
+
+		matRotZ = Matrix_RotAxisZ(rotAngle * 0.5f);
+		matRotX = Matrix_RotAxisX(rotAngle);
+
+		matrix4x4 matTrans;
+		matTrans = Matrix_MakeTranslate(0.0f, 0.0f, 16.0f);
+
+		matrix4x4 matWorld;
+		matWorld = Matrix_MakeIdentity();
+		matWorld = Matrix_MultiplyMatrix(matRotZ, matRotX);
+		matWorld = Matrix_MultiplyMatrix(matWorld, matTrans);
+
 
 		// Draw Triangles
 		for (auto tri : meshObject.tris)
 		{
-			triangle triProjected, triTranslated, triRotatedZ, triRotatedZX;
+			triangle triProjected, triTransformed;
 
-			// Rotate on Z-Axis
-			MultiplyMatrices(tri.p[0], triRotatedZ.p[0], matRotZ);
-			MultiplyMatrices(tri.p[1], triRotatedZ.p[1], matRotZ);
-			MultiplyMatrices(tri.p[2], triRotatedZ.p[2], matRotZ);
-
-			// Rotate on X-Axis
-			MultiplyMatrices(triRotatedZ.p[0], triRotatedZX.p[0], matRotX);
-			MultiplyMatrices(triRotatedZ.p[1], triRotatedZX.p[1], matRotX);
-			MultiplyMatrices(triRotatedZ.p[2], triRotatedZX.p[2], matRotX);
-
-			// Offset on Z-Axis as to be inside view
-			triTranslated = triRotatedZX;
-			triTranslated.p[0].z = triRotatedZX.p[0].z + 5.0f;
-			triTranslated.p[1].z = triRotatedZX.p[1].z + 5.0f;
-			triTranslated.p[2].z = triRotatedZX.p[2].z + 5.0f;
-
-
-
-			// Get Normals
+			triTransformed.p[0] = Matrix_MultiplyVector(matWorld, tri.p[0]);
+			triTransformed.p[1] = Matrix_MultiplyVector(matWorld, tri.p[1]);
+			triTransformed.p[2] = Matrix_MultiplyVector(matWorld, tri.p[2]);
+			
+			// Calculate triangle Normal
 			vec3d normal, line1, line2;
-			line1.x = triTranslated.p[1].x - triTranslated.p[0].x;
-			line1.y = triTranslated.p[1].y - triTranslated.p[0].y;
-			line1.z = triTranslated.p[1].z - triTranslated.p[0].z;
 
-			line2.x = triTranslated.p[2].x - triTranslated.p[0].x;
-			line2.y = triTranslated.p[2].y - triTranslated.p[0].y;
-			line2.z = triTranslated.p[2].z - triTranslated.p[0].z;
+			// Get lines either side of triangle
+			line1 = Vector_Subtract(triTransformed.p[1], triTransformed.p[0]);
+			line2 = Vector_Subtract(triTransformed.p[2], triTransformed.p[0]);
 
-			normal.x = line1.y * line2.z - line1.z * line2.y;
-			normal.y = line1.z * line2.x - line1.x * line2.z;
-			normal.z = line1.x * line2.y - line1.y * line2.x;
+			// Take Cross Product of line to get normal to tri surface
+			normal = Vector_CrossProduct(line1, line2);
 
-			// Normalize the normals
-			float l = sqrt(normal.x * normal.x + normal.y * normal.y + normal.z * normal.z);
-			normal.x /= l; normal.y /= l; normal.z /= l;
+			// Normalise normals!
+			normal = Vector_Normalise(normal);
 
 			// Culling
 			if (normal.x * (triTranslated.p[0].x - camera.x) +
@@ -367,6 +366,20 @@ public:
 
 
 		return true;
+	}
+
+	float Q_rsqrt(float number) {
+		long i;
+		float x2, y;
+		const float threehalfs = 1.5f;
+
+		x2 = number * 0.5f;
+		y = number;
+		i = * (long *) &y;					// evil floating point bit hack
+		i = 0x5f3759df - (i >> 1);			// what the fuck?
+		y = *(float*) &i;
+		y = y * (threehalfs - (x2 * y * y));	// 1st iteration
+		//y = y * (threehalfs - (x2 * y * y));	// 2nd iteration, this can be removed
 	}
 };
 
