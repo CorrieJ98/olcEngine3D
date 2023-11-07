@@ -32,8 +32,7 @@ public:
 
 
 private:
-	mesh meshCube;
-	mesh meshTetrahedron;
+	mesh meshObject;
 	matrix4x4 projection_matrix;
 	vec3d camera;
 
@@ -89,7 +88,7 @@ private:
 public:
 	bool OnUserCreate() override
 	{
-		meshCube.tris = {
+		meshObject.tris = {
 			// SOUTH IS THE CLOSEST FACE PERPENDICULAR TO THE SCREEN
 			// FACES ORIENTED RELATIVE TO THEIR NORMALS
 			// TRIS (triangles ie 3 Vertices) ARE TAKEN CLOCKWISE FROM LOWER LEFT QUADRANT
@@ -181,7 +180,7 @@ public:
 
 
 		// Draw Triangles
-		for (auto tri : meshCube.tris)
+		for (auto tri : meshObject.tris)
 		{
 			triangle triProjected, triTranslated, triRotatedZ, triRotatedZX;
 
