@@ -38,7 +38,7 @@ struct mesh {
 		// loop through .obj file for relevant data
 		while (!file.eof())
 		{
-			// assuming no line has >128 chars
+			// dirty assumption that no line has >128 characters
 			char line[128];
 			file.getline(line, 128);
 
@@ -48,7 +48,7 @@ struct mesh {
 
 
 
-			// add vert values to cache
+			// extract VERT values from obj then add to local cache
 			if (line[0] == 'v')
 			{
 				vec3d v;
@@ -57,7 +57,7 @@ struct mesh {
 			}
 
 
-			// build tris
+			// build TRIS from cached VERT values
 			if (line[0] == 'f')
 			{
 				int f[3];
@@ -85,6 +85,7 @@ public:
 	}
 
 private:
+	// ::::: VARIABLE INITIALISATION :::::
 	mesh meshObject;
 	matrix4x4 projection_matrix;
 	vec3d camera;
@@ -93,8 +94,8 @@ private:
 	const float PI = 3.141592;
 
 
+
 	// ::::: MATRIX MATH :::::
-	// :: Matrices
 	matrix4x4 Matrix_MakeIdentity() {
 		matrix4x4 id;
 		id.m[0][0] = 1.0f;
@@ -178,7 +179,7 @@ private:
 		return vout;
 	}
 
-	// :: Vectors
+	// ::::: VECTOR MATH :::::
 	vec3d Vector_Add(vec3d& v1, vec3d& v2) {
 		return { v1.x + v2.x, v1.y + v2.y, v1.z + v2.z };
 	}
@@ -268,7 +269,7 @@ public:
 
 		vector<triangle> vecTrianglesToRaster;
 
-		// ::::: Rotation Matrices :::::
+		// ::::: ROTATION MATRIX :::::
 		matrix4x4 matRotZ, matRotX;
 		rotAngle += 1.0f * elapsedTime;
 
@@ -309,7 +310,8 @@ public:
 			// Raycast from tri to cam
 			vec3d camRaycast = Vector_Subtract(triTransformed.p[0], camera);
 
-			// Culling
+
+			// ::::: CULLING :::::
 			if (Vector_DotProduct(normal,camRaycast) < 0.0f) {
 
 				// Illumination
