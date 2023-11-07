@@ -9,7 +9,10 @@
 using namespace std;
 
 struct vec3d {
-	float x, y, z, w;
+	float x = 0.0f;
+	float y = 0.0f;
+	float z = 0.0f;
+	float w = 1.0f;
 };
 
 struct triangle {
@@ -85,6 +88,7 @@ private:
 	mesh meshObject;
 	matrix4x4 projection_matrix;
 	vec3d camera;
+	float camZOffset = 6.0f;
 	float rotAngle;
 	const float PI = 3.141592;
 
@@ -119,6 +123,7 @@ private:
 		matRotZ.m[1][1] = cosf(angleRad);
 		matRotZ.m[2][2] = 1.0f;
 		matRotZ.m[3][3] = 1.0f;
+		return matRotZ;
 	}
 
 	matrix4x4 Matrix_RotAxisY(float angleRad) {
@@ -129,6 +134,7 @@ private:
 		matRotY.m[1][1] = 1.0f;
 		matRotY.m[2][2] = cosf(angleRad);
 		matRotY.m[3][3] = 1.0f;
+		return matRotY;
 	}
 
 	matrix4x4 Matrix_MakeTranslate(float x, float y, float z) {
@@ -250,7 +256,7 @@ public:
 	bool OnUserCreate() override
 	{
 		// .obj file import
-		meshObject.LoadFromObjectFile("spaceship.obj");
+		meshObject.LoadFromObjectFile("teapot.obj");
 
 		projection_matrix = Matrix_MakeProjection(90.0f, (float)ScreenHeight() / (float)ScreenWidth(), 0.1f, 1000.0f);
 		return true;
@@ -269,13 +275,13 @@ public:
 		matRotZ = Matrix_RotAxisZ(rotAngle * 0.5f);
 		matRotX = Matrix_RotAxisX(rotAngle);
 
-		matrix4x4 matTrans;
-		matTrans = Matrix_MakeTranslate(0.0f, 0.0f, 16.0f);
+		matrix4x4 matTranslation;
+		matTranslation = Matrix_MakeTranslate(0.0f, 0.0f, camZOffset);
 
 		matrix4x4 matWorld;
 		matWorld = Matrix_MakeIdentity();
 		matWorld = Matrix_MultiplyMatrix(matRotZ, matRotX);
-		matWorld = Matrix_MultiplyMatrix(matWorld, matTrans);
+		matWorld = Matrix_MultiplyMatrix(matWorld, matTranslation);
 
 
 		// Draw Triangles
@@ -300,41 +306,49 @@ public:
 			// Normalise normals!
 			normal = Vector_Normalise(normal);
 
+			// Raycast from tri to cam
+			vec3d camRaycast = Vector_Subtract(triTransformed.p[0], camera);
+
 			// Culling
-			if (normal.x * (triTranslated.p[0].x - camera.x) +
-				normal.y * (triTranslated.p[0].y - camera.y) +
-				normal.z * (triTranslated.p[0].z - camera.z) < 0.0f) {
+			if (Vector_DotProduct(normal,camRaycast) < 0.0f) {
 
-				// Illuminate the cube
-				vec3d light_direction = { 0.0f,0.0f,-1.0f };
+				// Illumination
+				vec3d light_direction = { 0.0f,1.0f,-1.0f };
+				light_direction = Vector_Normalise(light_direction);
 
-				float l = sqrt(light_direction.x * light_direction.x + light_direction.y * light_direction.y + light_direction.z * light_direction.z);
-				light_direction.x /= l; light_direction.y /= l; light_direction.z /= l;
+				// How aligned are the light direction and triangle normal?
+				float dot_product = max(0.1f, Vector_DotProduct(light_direction, normal));
 
-				float dp = normal.x * light_direction.x + normal.y * light_direction.y + normal.z * light_direction.z;
 
 				// Get colour as required using dot product
-				CHAR_INFO col = GetColour(dp);
-				triTranslated.colour = col.Attributes;
-				triTranslated.symbol = col.Char.UnicodeChar;
+				CHAR_INFO col = GetColour(dot_product);
+				triTransformed.colour = col.Attributes;
+				triTransformed.symbol = col.Char.UnicodeChar;
 
 				// Project triangles 3D --> 2D
-				MultiplyMatrices(triTranslated.p[0], triProjected.p[0], projection_matrix);
-				MultiplyMatrices(triTranslated.p[1], triProjected.p[1], projection_matrix);
-				MultiplyMatrices(triTranslated.p[2], triProjected.p[2], projection_matrix);
-				triProjected.colour = triTranslated.colour;
-				triProjected.symbol = triTranslated.symbol;
+				triProjected.p[0] = Matrix_MultiplyVector(projection_matrix, triTransformed.p[0]);
+				triProjected.p[1] = Matrix_MultiplyVector(projection_matrix, triTransformed.p[1]);
+				triProjected.p[2] = Matrix_MultiplyVector(projection_matrix, triTransformed.p[2]);
+				triProjected.colour = triTransformed.colour;
+				triProjected.symbol = triTransformed.symbol;
 
 				// Scale into view
-				triProjected.p[0].x += 1.0f; triProjected.p[0].y += 1.0f;
-				triProjected.p[1].x += 1.0f; triProjected.p[1].y += 1.0f;
-				triProjected.p[2].x += 1.0f; triProjected.p[2].y += 1.0f;
+				triProjected.p[0] = Vector_Divide(triProjected.p[0], triProjected.p[0].w);
+				triProjected.p[1] = Vector_Divide(triProjected.p[1], triProjected.p[1].w);
+				triProjected.p[2] = Vector_Divide(triProjected.p[2], triProjected.p[2].w);
+				
+				// Offset into screen space
+				vec3d viewOffset = { 1.0f, 1.0f , 0.0f};
+				triProjected.p[0] = Vector_Add(triProjected.p[0], viewOffset);
+				triProjected.p[1] = Vector_Add(triProjected.p[1], viewOffset);
+				triProjected.p[2] = Vector_Add(triProjected.p[2], viewOffset);
 				triProjected.p[0].x *= 0.5f * (float)ScreenWidth();
 				triProjected.p[0].y *= 0.5f * (float)ScreenHeight();
 				triProjected.p[1].x *= 0.5f * (float)ScreenWidth();
 				triProjected.p[1].y *= 0.5f * (float)ScreenHeight();
 				triProjected.p[2].x *= 0.5f * (float)ScreenWidth();
 				triProjected.p[2].y *= 0.5f * (float)ScreenHeight();
+
 
 				vecTrianglesToRaster.push_back(triProjected);
 			}
@@ -367,24 +381,7 @@ public:
 
 		return true;
 	}
-
-	float Q_rsqrt(float number) {
-		long i;
-		float x2, y;
-		const float threehalfs = 1.5f;
-
-		x2 = number * 0.5f;
-		y = number;
-		i = * (long *) &y;					// evil floating point bit hack
-		i = 0x5f3759df - (i >> 1);			// what the fuck?
-		y = *(float*) &i;
-		y = y * (threehalfs - (x2 * y * y));	// 1st iteration
-		//y = y * (threehalfs - (x2 * y * y));	// 2nd iteration, this can be removed
-	}
 };
-
-
-
 
 int main()
 {
