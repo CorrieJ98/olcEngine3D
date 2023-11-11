@@ -74,8 +74,6 @@ struct matrix4x4 {
 	float m[4][4] = { 0 };
 };
 
-
-
 class olcEngine3D : public olcConsoleGameEngine
 {
 public:
@@ -89,9 +87,12 @@ private:
 	mesh meshObject;
 	matrix4x4 projection_matrix;
 	vec3d camera;
+	vec3d lookdir;
+	float camYaw;
 	float camZOffset = 6.0f;
 	float rotAngle;
 	const float PI = 3.141592;
+	string objects[4] = { "axis.obj","mountains.obj","spaceship.obj","teapot.obj" };
 
 
 
@@ -103,6 +104,46 @@ private:
 		id.m[2][2] = 1.0f;
 		id.m[3][3] = 1.0f;
 		return id;
+	}
+
+	matrix4x4 Matrix_PointAt(vec3d &pos, vec3d &target, vec3d &up){
+		// Calculate new forward (x) direction
+		vec3d newFwd = Vector_Subtract(target, pos);
+		newFwd = Vector_Normalise(newFwd);
+
+		// Calculate new up (y) direction
+		vec3d a = Vector_Multiply(newFwd, Vector_DotProduct(up, newFwd));
+		vec3d newUp = Vector_Subtract(up, a);
+		newUp = Vector_Normalise(newUp);
+		
+		// Calculate new right(z) direction
+		vec3d newRight = Vector_CrossProduct(newUp, newFwd);
+
+		// Construct Dimensioning and Translation Matrix
+		matrix4x4 matDT;
+		matDT.m[0][0] = newRight.x;		matDT.m[0][2] = newRight.z;
+		matDT.m[1][0] = newUp.x;		matDT.m[1][2] = newUp.x;
+		matDT.m[2][0] = newFwd.x;		matDT.m[2][2] = newFwd.x;	
+		matDT.m[3][0] = pos.x;			matDT.m[3][2] = pos.x;
+		matDT.m[0][1] = newRight.y;		matDT.m[0][3] = 0.0f;
+		matDT.m[1][1] = newUp.y;		matDT.m[1][3] = 0.0f;
+		matDT.m[2][1] = newFwd.y;		matDT.m[2][3] = 0.0f;
+		matDT.m[3][1] = pos.y;			matDT.m[3][3] = 1.0f;
+		return matDT;
+	}
+
+
+	matrix4x4 Matrix_Invert(matrix4x4 &m) // Only for Rotation/Translation Matrices
+	{
+		matrix4x4 matrix;
+		matrix.m[0][0] = m.m[0][0]; matrix.m[0][1] = m.m[1][0]; matrix.m[0][2] = m.m[2][0]; matrix.m[0][3] = 0.0f;
+		matrix.m[1][0] = m.m[0][1]; matrix.m[1][1] = m.m[1][1]; matrix.m[1][2] = m.m[2][1]; matrix.m[1][3] = 0.0f;
+		matrix.m[2][0] = m.m[0][2]; matrix.m[2][1] = m.m[1][2]; matrix.m[2][2] = m.m[2][2]; matrix.m[2][3] = 0.0f;
+		matrix.m[3][0] = -(m.m[3][0] * matrix.m[0][0] + m.m[3][1] * matrix.m[1][0] + m.m[3][2] * matrix.m[2][0]);
+		matrix.m[3][1] = -(m.m[3][0] * matrix.m[0][1] + m.m[3][1] * matrix.m[1][1] + m.m[3][2] * matrix.m[2][1]);
+		matrix.m[3][2] = -(m.m[3][0] * matrix.m[0][2] + m.m[3][1] * matrix.m[1][2] + m.m[3][2] * matrix.m[2][2]);
+		matrix.m[3][3] = 1.0f;
+		return matrix;
 	}
 
 	matrix4x4 Matrix_RotAxisX(float angleRad) {
@@ -257,7 +298,7 @@ public:
 	bool OnUserCreate() override
 	{
 		// .obj file import
-		meshObject.LoadFromObjectFile("teapot.obj");
+		meshObject.LoadFromObjectFile(objects[0]);
 
 		projection_matrix = Matrix_MakeProjection(90.0f, (float)ScreenHeight() / (float)ScreenWidth(), 0.1f, 1000.0f);
 		return true;
@@ -271,7 +312,7 @@ public:
 
 		// ::::: ROTATION MATRIX :::::
 		matrix4x4 matRotZ, matRotX;
-		rotAngle += 1.0f * elapsedTime;
+		// rotAngle += 1.0f * elapsedTime;
 
 		matRotZ = Matrix_RotAxisZ(rotAngle * 0.5f);
 		matRotX = Matrix_RotAxisX(rotAngle);
@@ -284,11 +325,18 @@ public:
 		matWorld = Matrix_MultiplyMatrix(matRotZ, matRotX);
 		matWorld = Matrix_MultiplyMatrix(matWorld, matTranslation);
 
+		lookdir = { 0.0f,0.0f,1.0f };
+		vec3d up = { 0.0f,1.0f,0.0f };
+		vec3d target = Vector_Add(camera, lookdir);
+
+		matrix4x4 camMatrix = Matrix_PointAt(camera, target, up);
+
+		matrix4x4 matView = Matrix_Invert(camMatrix);
 
 		// Draw Triangles
 		for (auto tri : meshObject.tris)
 		{
-			triangle triProjected, triTransformed;
+			triangle triProjected, triTransformed, triViewed;
 
 			triTransformed.p[0] = Matrix_MultiplyVector(matWorld, tri.p[0]);
 			triTransformed.p[1] = Matrix_MultiplyVector(matWorld, tri.p[1]);
@@ -315,7 +363,7 @@ public:
 			if (Vector_DotProduct(normal,camRaycast) < 0.0f) {
 
 				// Illumination
-				vec3d light_direction = { 0.0f,1.0f,-1.0f };
+				vec3d light_direction = { 1.0f, 1.0f,-1.0f};
 				light_direction = Vector_Normalise(light_direction);
 
 				// How aligned are the light direction and triangle normal?
@@ -326,6 +374,11 @@ public:
 				CHAR_INFO col = GetColour(dot_product);
 				triTransformed.colour = col.Attributes;
 				triTransformed.symbol = col.Char.UnicodeChar;
+
+				// Convert world space into view space
+				triViewed.p[0] = Matrix_MultiplyVector(matView, triTransformed.p[0]);
+				triViewed.p[1] = Matrix_MultiplyVector(matView, triTransformed.p[1]);
+				triViewed.p[2] = Matrix_MultiplyVector(matView, triTransformed.p[2]);
 
 				// Project triangles 3D --> 2D
 				triProjected.p[0] = Matrix_MultiplyVector(projection_matrix, triTransformed.p[0]);
