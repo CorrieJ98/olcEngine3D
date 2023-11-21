@@ -89,6 +89,7 @@ private:
 	float cameraYSpeed = .0f;
 	vec3d lookdir;
 	float camYaw;
+	float camPitch;
 	float camZOffset = 6.0f;
 	float rotAngle;
 	const float PI = 3.141592;
@@ -309,7 +310,7 @@ public:
 	{
 
 		vec3d vForward = Vector_Multiply(lookdir, 8.0f * elapsedTime);
-		// ::::: KEYBINDS :::::
+		// ::::: KEYBINDINGS :::::
 		if (GetKey(L'E').bHeld)	// Up
 			camera.y += 8.0f * elapsedTime;
 		
@@ -327,6 +328,24 @@ public:
 
 		if (GetKey(L'S').bHeld) // Back
 			camera = Vector_Subtract(camera, vForward);
+
+		if (GetKey(VK_LEFT).bHeld)
+			camYaw -= 2.0f * elapsedTime;
+
+		if (GetKey(VK_RIGHT).bHeld)
+			camYaw += 2.0f * elapsedTime;
+
+		if (GetKey(VK_UP).bHeld)
+			camPitch -= 2.0f * elapsedTime;
+
+		if (GetKey(VK_DOWN).bHeld)
+			camPitch -= 2.0f * elapsedTime;
+
+
+
+
+
+
 
 
 
