@@ -4,8 +4,6 @@
 #include <algorithm>
 #include <iostream>
 
-// https://youtu.be/HXSuNxpCzdM?t=409
-
 using namespace std;
 
 struct vec3d {
@@ -109,7 +107,7 @@ private:
 	}
 
 	matrix4x4 Matrix_PointAt(vec3d &pos, vec3d &target, vec3d &up){
-		// Calculate new forward direction
+		// Calculate new forward (x) direction
 		vec3d newFwd = Vector_Subtract(target, pos);
 		newFwd = Vector_Normalise(newFwd);
 
@@ -121,7 +119,7 @@ private:
 		// Calculate new right(z) direction
 		vec3d newRight = Vector_CrossProduct(newUp, newFwd);
 
-		// Construct Dimensioning and Translation Matrix
+		// Construct Dimension and Translation Matrix
 		matrix4x4 matDT;
 		matDT.m[0][0] = newRight.x;		matDT.m[0][2] = newRight.z;
 		matDT.m[1][0] = newUp.x;		matDT.m[1][2] = newUp.z;
@@ -135,7 +133,7 @@ private:
 	}
 
 
-	matrix4x4 Matrix_Invert(matrix4x4 &m) // Only for Rotation/Translation Matrices
+	matrix4x4 Matrix_QuickInvert(matrix4x4 &m) // Only for Rotation/Translation Matrices
 	{
 		matrix4x4 matrix;
 		matrix.m[0][0] = m.m[0][0]; matrix.m[0][1] = m.m[1][0]; matrix.m[0][2] = m.m[2][0]; matrix.m[0][3] = 0.0f;
@@ -309,35 +307,27 @@ public:
 
 	bool OnUserUpdate(float elapsedTime) override
 	{
-		if (GetKey(VK_UP).bHeld)
-			camera.y += 8.0f * elapsedTime;	// Travel Upwards
-
-		if (GetKey(VK_DOWN).bHeld)
-			camera.y -= 8.0f * elapsedTime;	// Travel Downwards
-
-
-		// Dont use these two in FPS mode, it is confusing :P
-		if (GetKey(VK_LEFT).bHeld)
-			camera.x -= 8.0f * elapsedTime;	// Travel Along X-Axis
-
-		if (GetKey(VK_RIGHT).bHeld)
-			camera.x += 8.0f * elapsedTime;	// Travel Along X-Axis
-
 
 		vec3d vForward = Vector_Multiply(lookdir, 8.0f * elapsedTime);
+		// ::::: KEYBINDS :::::
+		if (GetKey(L'E').bHeld)	// Up
+			camera.y += 8.0f * elapsedTime;
+		
+		if (GetKey(L'Q').bHeld)	// Down
+			camera.y -= 8.0f * elapsedTime;
 
-		// Standard FPS Control scheme, but turn instead of strafe
-		if (GetKey(L'W').bHeld)
+		if (GetKey(L'A').bHeld)	// Left
+			camera.x += 8.0f * elapsedTime;
+
+		if (GetKey(L'D').bHeld)	// Right
+			camera.x -= 8.0f * elapsedTime;
+
+		if (GetKey(L'W').bHeld)	// Forward
 			camera = Vector_Add(camera, vForward);
 
-		if (GetKey(L'S').bHeld)
+		if (GetKey(L'S').bHeld) // Back
 			camera = Vector_Subtract(camera, vForward);
 
-		if (GetKey(L'A').bHeld)
-			camYaw -= 2.0f * elapsedTime;
-
-		if (GetKey(L'D').bHeld)
-			camYaw += 2.0f * elapsedTime;
 
 
 		// Clear screen
@@ -366,7 +356,7 @@ public:
 
 		matrix4x4 camMatrix = Matrix_PointAt(camera, target, up);
 
-		matrix4x4 matView = Matrix_Invert(camMatrix);
+		matrix4x4 matView = Matrix_QuickInvert(camMatrix);
 
 		// Draw Triangles
 		for (auto tri : meshObject.tris)
@@ -413,13 +403,11 @@ public:
 				triViewed.p[0] = Matrix_MultiplyVector(matView, triTransformed.p[0]);
 				triViewed.p[1] = Matrix_MultiplyVector(matView, triTransformed.p[1]);
 				triViewed.p[2] = Matrix_MultiplyVector(matView, triTransformed.p[2]);
-				triViewed.symbol = triTransformed.symbol;
-				triViewed.colour = triTransformed.colour;
 
 				// Project triangles 3D --> 2D
-				triProjected.p[0] = Matrix_MultiplyVector(projection_matrix, triTransformed.p[0]);
-				triProjected.p[1] = Matrix_MultiplyVector(projection_matrix, triTransformed.p[1]);
-				triProjected.p[2] = Matrix_MultiplyVector(projection_matrix, triTransformed.p[2]);
+				triProjected.p[0] = Matrix_MultiplyVector(projection_matrix, triViewed.p[0]);
+				triProjected.p[1] = Matrix_MultiplyVector(projection_matrix, triViewed.p[1]);
+				triProjected.p[2] = Matrix_MultiplyVector(projection_matrix, triViewed.p[2]);
 				triProjected.colour = triTransformed.colour;
 				triProjected.symbol = triTransformed.symbol;
 
