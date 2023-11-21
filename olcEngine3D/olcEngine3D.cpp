@@ -44,8 +44,6 @@ struct mesh {
 			strstream s;
 			s << line;
 
-
-
 			// extract VERT values from obj then add to local cache
 			if (line[0] == 'v')
 			{
@@ -92,7 +90,7 @@ private:
 	float camPitch;
 	float camZOffset = 6.0f;
 	float rotAngle;
-	const float PI = 3.141592;
+	const float PI = 3.141592653;
 	string objects[4] = { "axis.obj","mountains.obj","spaceship.obj","teapot.obj" };
 
 
@@ -342,13 +340,6 @@ public:
 			camPitch -= 2.0f * elapsedTime;
 
 
-
-
-
-
-
-
-
 		// Clear screen
 		Fill(0, 0, ScreenWidth(), ScreenHeight(), PIXEL_SOLID, FG_BLACK);
 
@@ -369,9 +360,12 @@ public:
 		matWorld = Matrix_MultiplyMatrix(matRotZ, matRotX);
 		matWorld = Matrix_MultiplyMatrix(matWorld, matTranslation);
 
-		lookdir = { 0.0f,0.0f,1.0f };
 		vec3d up = { 0.0f,1.0f,0.0f };
-		vec3d target = Vector_Add(camera, lookdir);
+		vec3d target = {0,0,1};
+		matrix4x4 camMatrixRot = Matrix_RotAxisY(camYaw);
+		lookdir = Matrix_MultiplyVector(camMatrixRot, target);
+		target = Vector_Add(camera, lookdir);
+
 
 		matrix4x4 camMatrix = Matrix_PointAt(camera, target, up);
 
