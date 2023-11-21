@@ -86,7 +86,9 @@ private:
 	// ::::: VARIABLE INITIALISATION :::::
 	mesh meshObject;
 	matrix4x4 projection_matrix;
-	vec3d camera;
+	vec3d camera = {0,0,0};
+	float cameraXSpeed = 8.0f;
+	float cameraYSpeed = .0f;
 	vec3d lookdir;
 	float camYaw;
 	float camZOffset = 6.0f;
@@ -107,7 +109,7 @@ private:
 	}
 
 	matrix4x4 Matrix_PointAt(vec3d &pos, vec3d &target, vec3d &up){
-		// Calculate new forward (x) direction
+		// Calculate new forward direction
 		vec3d newFwd = Vector_Subtract(target, pos);
 		newFwd = Vector_Normalise(newFwd);
 
@@ -122,9 +124,9 @@ private:
 		// Construct Dimensioning and Translation Matrix
 		matrix4x4 matDT;
 		matDT.m[0][0] = newRight.x;		matDT.m[0][2] = newRight.z;
-		matDT.m[1][0] = newUp.x;		matDT.m[1][2] = newUp.x;
-		matDT.m[2][0] = newFwd.x;		matDT.m[2][2] = newFwd.x;	
-		matDT.m[3][0] = pos.x;			matDT.m[3][2] = pos.x;
+		matDT.m[1][0] = newUp.x;		matDT.m[1][2] = newUp.z;
+		matDT.m[2][0] = newFwd.x;		matDT.m[2][2] = newFwd.z;	
+		matDT.m[3][0] = pos.x;			matDT.m[3][2] = pos.z;
 		matDT.m[0][1] = newRight.y;		matDT.m[0][3] = 0.0f;
 		matDT.m[1][1] = newUp.y;		matDT.m[1][3] = 0.0f;
 		matDT.m[2][1] = newFwd.y;		matDT.m[2][3] = 0.0f;
@@ -300,12 +302,45 @@ public:
 		// .obj file import
 		meshObject.LoadFromObjectFile(objects[0]);
 
+		// Projection Matrix
 		projection_matrix = Matrix_MakeProjection(90.0f, (float)ScreenHeight() / (float)ScreenWidth(), 0.1f, 1000.0f);
 		return true;
 	}
 
 	bool OnUserUpdate(float elapsedTime) override
 	{
+		if (GetKey(VK_UP).bHeld)
+			camera.y += 8.0f * elapsedTime;	// Travel Upwards
+
+		if (GetKey(VK_DOWN).bHeld)
+			camera.y -= 8.0f * elapsedTime;	// Travel Downwards
+
+
+		// Dont use these two in FPS mode, it is confusing :P
+		if (GetKey(VK_LEFT).bHeld)
+			camera.x -= 8.0f * elapsedTime;	// Travel Along X-Axis
+
+		if (GetKey(VK_RIGHT).bHeld)
+			camera.x += 8.0f * elapsedTime;	// Travel Along X-Axis
+
+
+		vec3d vForward = Vector_Multiply(lookdir, 8.0f * elapsedTime);
+
+		// Standard FPS Control scheme, but turn instead of strafe
+		if (GetKey(L'W').bHeld)
+			camera = Vector_Add(camera, vForward);
+
+		if (GetKey(L'S').bHeld)
+			camera = Vector_Subtract(camera, vForward);
+
+		if (GetKey(L'A').bHeld)
+			camYaw -= 2.0f * elapsedTime;
+
+		if (GetKey(L'D').bHeld)
+			camYaw += 2.0f * elapsedTime;
+
+
+		// Clear screen
 		Fill(0, 0, ScreenWidth(), ScreenHeight(), PIXEL_SOLID, FG_BLACK);
 
 		vector<triangle> vecTrianglesToRaster;
@@ -363,15 +398,14 @@ public:
 			if (Vector_DotProduct(normal,camRaycast) < 0.0f) {
 
 				// Illumination
-				vec3d light_direction = { 1.0f, 1.0f,-1.0f};
+				vec3d light_direction = { 0.0f, 1.0f,-1.0f};
 				light_direction = Vector_Normalise(light_direction);
 
 				// How aligned are the light direction and triangle normal?
-				float dot_product = max(0.1f, Vector_DotProduct(light_direction, normal));
-
+				float dp = max(0.1f, Vector_DotProduct(light_direction, normal));
 
 				// Get colour as required using dot product
-				CHAR_INFO col = GetColour(dot_product);
+				CHAR_INFO col = GetColour(dp);
 				triTransformed.colour = col.Attributes;
 				triTransformed.symbol = col.Char.UnicodeChar;
 
@@ -379,6 +413,8 @@ public:
 				triViewed.p[0] = Matrix_MultiplyVector(matView, triTransformed.p[0]);
 				triViewed.p[1] = Matrix_MultiplyVector(matView, triTransformed.p[1]);
 				triViewed.p[2] = Matrix_MultiplyVector(matView, triTransformed.p[2]);
+				triViewed.symbol = triTransformed.symbol;
+				triViewed.colour = triTransformed.colour;
 
 				// Project triangles 3D --> 2D
 				triProjected.p[0] = Matrix_MultiplyVector(projection_matrix, triTransformed.p[0]);
@@ -391,12 +427,20 @@ public:
 				triProjected.p[0] = Vector_Divide(triProjected.p[0], triProjected.p[0].w);
 				triProjected.p[1] = Vector_Divide(triProjected.p[1], triProjected.p[1].w);
 				triProjected.p[2] = Vector_Divide(triProjected.p[2], triProjected.p[2].w);
+
+				// X/Y are inverted so put them back
+				triProjected.p[0].x *= -1.0f;
+				triProjected.p[1].x *= -1.0f;
+				triProjected.p[2].x *= -1.0f;
+				triProjected.p[0].y *= -1.0f;
+				triProjected.p[1].y *= -1.0f;
+				triProjected.p[2].y *= -1.0f;
 				
 				// Offset into screen space
-				vec3d viewOffset = { 1.0f, 1.0f , 0.0f};
-				triProjected.p[0] = Vector_Add(triProjected.p[0], viewOffset);
-				triProjected.p[1] = Vector_Add(triProjected.p[1], viewOffset);
-				triProjected.p[2] = Vector_Add(triProjected.p[2], viewOffset);
+				vec3d vOffsetView = { 1,1,0};
+				triProjected.p[0] = Vector_Add(triProjected.p[0], vOffsetView);
+				triProjected.p[1] = Vector_Add(triProjected.p[1], vOffsetView);
+				triProjected.p[2] = Vector_Add(triProjected.p[2], vOffsetView);
 				triProjected.p[0].x *= 0.5f * (float)ScreenWidth();
 				triProjected.p[0].y *= 0.5f * (float)ScreenHeight();
 				triProjected.p[1].x *= 0.5f * (float)ScreenWidth();
