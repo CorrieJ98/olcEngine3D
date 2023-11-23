@@ -237,6 +237,19 @@ private:
 		return { v1.x / k, v1.y / k, v1.z / k };
 	}
 
+	float Q3_InverseSqrt(float x) {
+		long i;
+		float x2, y;
+		const float threehalves = 1.5f;
+
+		x2 = y * 0.5f;
+		y = x;
+		i = *(long*)&y;
+		i = 0x05f3759df - (i >> 1);
+		y = *(float*)&i;
+		y = y * (threehalves - (x2 * y * y));	// first newtonian iteration
+	}
+
 	float Vector_DotProduct(vec3d& v1, vec3d& v2) {
 		return { v1.x * v2.x + v1.y * v2.y + v1.z * v2.z };
 	}
