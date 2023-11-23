@@ -6,6 +6,8 @@
 
 using namespace std;
 
+// TODO https://youtu.be/HXSuNxpCzdM?list=PLrOv9FMX8xJE8NgepZR1etrsU63fDDGxO&t=1783
+
 struct vec3d {
 	float x = 0.0f;
 	float y = 0.0f;
@@ -85,10 +87,10 @@ private:
 	vec3d camera = {0,0,0};
 	float cameraXSpeed = 8.0f;
 	float cameraYSpeed = .0f;
-	vec3d lookdir;
 	float camYaw;
 	float camPitch;
 	float camZOffset = 6.0f;
+	vec3d lookdir;
 	float rotAngle;
 	const float PI = 3.141592653;
 	string objects[4] = { "axis.obj","mountains.obj","spaceship.obj","teapot.obj" };
@@ -130,7 +132,6 @@ private:
 		matDT.m[3][1] = pos.y;			matDT.m[3][3] = 1.0f;
 		return matDT;
 	}
-
 
 	matrix4x4 Matrix_QuickInvert(matrix4x4 &m) // Only for Rotation/Translation Matrices
 	{
@@ -300,14 +301,17 @@ public:
 		meshObject.LoadFromObjectFile(objects[0]);
 
 		// Projection Matrix
-		projection_matrix = Matrix_MakeProjection(90.0f, (float)ScreenHeight() / (float)ScreenWidth(), 0.1f, 1000.0f);
+		projection_matrix = Matrix_MakeProjection(90.0f, (float)ScreenHeight() / (float)ScreenWidth(), 0.01f, 1000.0f);
 		return true;
 	}
 
 	bool OnUserUpdate(float elapsedTime) override
 	{
-
+		matrix4x4 lookdirN = Matrix_RotAxisY(0.5f * PI);
 		vec3d vForward = Vector_Multiply(lookdir, 8.0f * elapsedTime);
+		vec3d s = Matrix_MultiplyVector(lookdirN, lookdir);
+		vec3d vStrafe = Vector_Multiply(s, 8.0f * elapsedTime);
+
 		// ::::: KEYBINDINGS :::::
 		if (GetKey(L'E').bHeld)	// Up
 			camera.y += 8.0f * elapsedTime;
@@ -316,10 +320,10 @@ public:
 			camera.y -= 8.0f * elapsedTime;
 
 		if (GetKey(L'A').bHeld)	// Left
-			camera.x += 8.0f * elapsedTime;
+			camera = Vector_Subtract(camera, vStrafe);
 
 		if (GetKey(L'D').bHeld)	// Right
-			camera.x -= 8.0f * elapsedTime;
+			camera = Vector_Add(camera, vStrafe);
 
 		if (GetKey(L'W').bHeld)	// Forward
 			camera = Vector_Add(camera, vForward);
@@ -327,17 +331,17 @@ public:
 		if (GetKey(L'S').bHeld) // Back
 			camera = Vector_Subtract(camera, vForward);
 
-		if (GetKey(VK_LEFT).bHeld)
+		if (GetKey(VK_LEFT).bHeld)	// Yaw Left
 			camYaw -= 2.0f * elapsedTime;
 
-		if (GetKey(VK_RIGHT).bHeld)
+		if (GetKey(VK_RIGHT).bHeld)	// Yaw Right
 			camYaw += 2.0f * elapsedTime;
 
-		if (GetKey(VK_UP).bHeld)
+		if (GetKey(VK_UP).bHeld)	// Pitch Up
 			camPitch -= 2.0f * elapsedTime;
 
-		if (GetKey(VK_DOWN).bHeld)
-			camPitch -= 2.0f * elapsedTime;
+		if (GetKey(VK_DOWN).bHeld)	// Pitch Down
+			camPitch += 2.0f * elapsedTime;
 
 
 		// Clear screen
@@ -362,7 +366,10 @@ public:
 
 		vec3d up = { 0.0f,1.0f,0.0f };
 		vec3d target = {0,0,1};
-		matrix4x4 camMatrixRot = Matrix_RotAxisY(camYaw);
+
+		matrix4x4 y = Matrix_RotAxisY(camYaw);
+		matrix4x4 p = Matrix_RotAxisX(camPitch);
+		matrix4x4 camMatrixRot = Matrix_MultiplyMatrix(y,p);
 		lookdir = Matrix_MultiplyVector(camMatrixRot, target);
 		target = Vector_Add(camera, lookdir);
 
