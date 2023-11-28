@@ -6,22 +6,18 @@
 
 using namespace std;
 
-// TODO https://youtu.be/HXSuNxpCzdM?list=PLrOv9FMX8xJE8NgepZR1etrsU63fDDGxO&t=1783
-
 struct vec3d {
 	float x = 0.0f;
 	float y = 0.0f;
 	float z = 0.0f;
 	float w = 1.0f;
 };
-
 struct triangle {
 	vec3d p[3];
 
 	wchar_t symbol;
 	short colour;
 };
-
 struct mesh {
 
 	vector<triangle> tris;
@@ -67,7 +63,6 @@ struct mesh {
 		return true;
 	}
 };
-
 struct matrix4x4 {
 	float m[4][4] = { 0 };
 };
@@ -82,7 +77,7 @@ public:
 
 private:
 	// ::::: VARIABLE INITIALISATION :::::
-	mesh meshObject;
+	mesh testMesh;
 	matrix4x4 projection_matrix;
 	vec3d camera = {0,0,0};
 	float cameraXSpeed = 8.0f;
@@ -97,7 +92,7 @@ private:
 
 
 
-	// ::::: MATRIX MATH :::::
+	// ::::: MATRIX & VECTOR MATH :::::
 	matrix4x4 Matrix_MakeIdentity() {
 		matrix4x4 id;
 		id.m[0][0] = 1.0f;
@@ -220,7 +215,6 @@ private:
 		return vout;
 	}
 
-	// ::::: VECTOR MATH :::::
 	vec3d Vector_Add(vec3d& v1, vec3d& v2) {
 		return { v1.x + v2.x, v1.y + v2.y, v1.z + v2.z };
 	}
@@ -235,19 +229,6 @@ private:
 
 	vec3d Vector_Divide(vec3d& v1,float k) {
 		return { v1.x / k, v1.y / k, v1.z / k };
-	}
-
-	float Q3_InverseSqrt(float x) {
-		long i;
-		float x2, y;
-		const float threehalves = 1.5f;
-
-		x2 = y * 0.5f;
-		y = x;
-		i = *(long*)&y;
-		i = 0x05f3759df - (i >> 1);
-		y = *(float*)&i;
-		y = y * (threehalves - (x2 * y * y));	// first newtonian iteration
 	}
 
 	float Vector_DotProduct(vec3d& v1, vec3d& v2) {
@@ -269,6 +250,21 @@ private:
 		v.y = v1.z * v2.x - v1.x * v2.z;
 		v.z = v1.x * v2.y - v1.y * v2.x;
 		return v;
+	}
+
+	float Q_rsqrt(float x) {
+		// result of 1/sqrt(x)
+		long i;
+		float x2, y;
+		const float threehalves = 1.5f;
+
+		x2 = y * 0.5f;
+		y = x;
+		i = *(long*)&y;
+		i = 0x05f3759df - (i >> 1);
+		y = *(float*)&i;
+		y = y * (threehalves - (x2 * y * y));	// first newtonian iteration
+	//	y = y * (threehalves - (x2 * y * y));	// second newtonian iteration (obsolete)
 	}
 
 
@@ -311,7 +307,7 @@ public:
 	bool OnUserCreate() override
 	{
 		// .obj file import
-		meshObject.LoadFromObjectFile(objects[0]);
+		testMesh.LoadFromObjectFile(objects[0]);
 
 		// Projection Matrix
 		projection_matrix = Matrix_MakeProjection(90.0f, (float)ScreenHeight() / (float)ScreenWidth(), 0.01f, 1000.0f);
@@ -319,11 +315,26 @@ public:
 	}
 
 	bool OnUserUpdate(float elapsedTime) override
-	{
-		matrix4x4 lookdirN = Matrix_RotAxisY(0.5f * PI);
+	{/*
+
+		vec3d vForward = Vector_Multiply(lookdir, 8.0f * elapsedTime); */
+
+		// Camera Matrix
+		vec3d up = { 0.0f,1.0f,0.0f };
+		vec3d target = { 0.0f,0.0f,1.0f };
+		matrix4x4 ninety = Matrix_RotAxisY(0.5f * PI);
+		vec3d s = Matrix_MultiplyVector(ninety, lookdir);
 		vec3d vForward = Vector_Multiply(lookdir, 8.0f * elapsedTime);
-		vec3d s = Matrix_MultiplyVector(lookdirN, lookdir);
-		vec3d vStrafe = Vector_Multiply(s, 8.0f * elapsedTime);
+		vec3d vShoulderRail = Vector_Multiply(s, 8.0f * elapsedTime);
+		matrix4x4 y = Matrix_RotAxisY(camYaw);
+		matrix4x4 p = Matrix_RotAxisX(camPitch);
+		vec3d yaw = Matrix_MultiplyVector(y,vShoulderRail);
+		vec3d pitch = Matrix_MultiplyVector(p, vShoulderRail);
+		matrix4x4 camMatrixRot = Matrix_MultiplyMatrix(y,p);
+		lookdir = Matrix_MultiplyVector(camMatrixRot, target);
+		target = Vector_Add(camera, lookdir);		
+		matrix4x4 camMatrix = Matrix_PointAt(camera, target, up);
+		matrix4x4 matView = Matrix_QuickInvert(camMatrix);
 
 		// ::::: KEYBINDINGS :::::
 		if (GetKey(L'E').bHeld)	// Up
@@ -333,10 +344,10 @@ public:
 			camera.y -= 8.0f * elapsedTime;
 
 		if (GetKey(L'A').bHeld)	// Left
-			camera = Vector_Subtract(camera, vStrafe);
+			camera = Vector_Subtract(camera, vShoulderRail);
 
 		if (GetKey(L'D').bHeld)	// Right
-			camera = Vector_Add(camera, vStrafe);
+			camera = Vector_Add(camera, vShoulderRail);
 
 		if (GetKey(L'W').bHeld)	// Forward
 			camera = Vector_Add(camera, vForward);
@@ -377,22 +388,10 @@ public:
 		matWorld = Matrix_MultiplyMatrix(matRotZ, matRotX);
 		matWorld = Matrix_MultiplyMatrix(matWorld, matTranslation);
 
-		vec3d up = { 0.0f,1.0f,0.0f };
-		vec3d target = {0,0,1};
 
-		matrix4x4 y = Matrix_RotAxisY(camYaw);
-		matrix4x4 p = Matrix_RotAxisX(camPitch);
-		matrix4x4 camMatrixRot = Matrix_MultiplyMatrix(y,p);
-		lookdir = Matrix_MultiplyVector(camMatrixRot, target);
-		target = Vector_Add(camera, lookdir);
-
-
-		matrix4x4 camMatrix = Matrix_PointAt(camera, target, up);
-
-		matrix4x4 matView = Matrix_QuickInvert(camMatrix);
 
 		// Draw Triangles
-		for (auto tri : meshObject.tris)
+		for (auto tri : testMesh.tris)
 		{
 			triangle triProjected, triTransformed, triViewed;
 
