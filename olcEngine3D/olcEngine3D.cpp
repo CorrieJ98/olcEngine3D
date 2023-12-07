@@ -81,7 +81,7 @@ private:
 	matrix4x4 projection_matrix;
 	vec3d camera = {0,0,0};
 	float cameraXSpeed = 8.0f;
-	float cameraYSpeed = .0f;
+	float cameraYSpeed = 8.0f;
 	float camYaw;
 	float camPitch;
 	float camZOffset = 6.0f;
@@ -355,18 +355,23 @@ public:
 		if (GetKey(L'S').bHeld) // Back
 			camera = Vector_Subtract(camera, vForward);
 
-		if (GetKey(VK_LEFT).bHeld)	// Yaw Left
-			camYaw -= 2.0f * elapsedTime;
 
-		if (GetKey(VK_RIGHT).bHeld)	// Yaw Right
-			camYaw += 2.0f * elapsedTime;
+		// for cam rotations, translate to cam position > apply rotation > translate back to origin
 
-		if (GetKey(VK_UP).bHeld)	// Pitch Up
-			camPitch -= 2.0f * elapsedTime;
+		//TODO unfuck this absolute mess
+		//im losing my tiny mind
 
-		if (GetKey(VK_DOWN).bHeld)	// Pitch Down
-			camPitch += 2.0f * elapsedTime;
+		//if (GetKey(VK_LEFT).bHeld)	// Yaw Left
+		//	camYaw -= 2.0f * elapsedTime;
 
+		//if (GetKey(VK_RIGHT).bHeld)	// Yaw Right
+		//	camYaw += 2.0f * elapsedTime;
+
+		//if (GetKey(VK_UP).bHeld){	// Pitch Up
+		//	camPitch -= 2.0f * elapsedTime;
+
+		//if (GetKey(VK_DOWN).bHeld)	// Pitch Down
+		//	camPitch += 2.0f * elapsedTime;
 
 		// Clear screen
 		Fill(0, 0, ScreenWidth(), ScreenHeight(), PIXEL_SOLID, FG_BLACK);
