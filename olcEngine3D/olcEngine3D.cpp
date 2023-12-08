@@ -91,7 +91,7 @@ private:
 	float camZOffset = 6.0f;
 	vec3 lookdir;
 	float rotAngle;
-	const float PI = 3.141592653;
+	const float PI = 3.1415926535;
 	string objects[4] = { "axis.obj","mountains.obj","spaceship.obj","teapot.obj" };
 
 
