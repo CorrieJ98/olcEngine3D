@@ -3,6 +3,7 @@
 #include <strstream>
 #include <algorithm>
 #include <iostream>
+#include "quaternion.h"
 
 using namespace std;
 
