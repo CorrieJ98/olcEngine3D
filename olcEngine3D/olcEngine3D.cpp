@@ -15,8 +15,8 @@ struct vec3 {
 struct triangle {
 	vec3 p[3];
 
-	wchar_t symbol;
-	short colour;
+	wchar_t sym;
+	short col;
 };
 struct mesh {
 
@@ -69,6 +69,12 @@ struct matrix4x4 {
 struct camera {
 	vec3 pos;
 	float pitch, yaw;
+
+	// Im certain this is a terrible idea
+	float pcos = cosf(pitch);
+	float psin = sinf(pitch);
+	float ycos = cosf(yaw);
+	float ysin = sinf(yaw);
 };
 
 class olcEngine3D : public olcConsoleGameEngine
@@ -84,17 +90,18 @@ private:
 	mesh testMesh;
 	matrix4x4 projection_matrix;
 	camera eye;
-	float cameraXSpeed = 8.0f;
-	float cameraYSpeed = .0f;
-	float camYaw;
-	float camPitch;
 	float camZOffset = 6.0f;
 	vec3 lookdir;
-	float rotAngle;
 	const float PI = 3.141592653;
 	string objects[4] = { "axis.obj","mountains.obj","spaceship.obj","teapot.obj" };
 
+	float RadToDeg(float rad) {
+		return rad *= 180 / PI;
+	}
 
+	float DegToRad(float deg) {
+		return deg *= PI / 180;
+	}
 
 	// ::::: MATRIX & VECTOR MATH :::::
 	matrix4x4 Matrix_MakeIdentity() {
@@ -282,23 +289,24 @@ private:
 		return Vector_Add(lineStart, lineToIntersect);
 	}
 
-	int Tri_ClipAgainstPlane(vec3 plane_p, vec3 plane_n, triangle &in_tri, triangle &out_tri1, triangle &out_tri2){
-		
-		// Ensure plane normal is actualyl normal
+	int Triangle_ClipAgainstPlane(vec3 plane_p, vec3 plane_n, triangle& in_tri, triangle& out_tri1, triangle& out_tri2)
+	{
+		// Make sure plane normal is indeed normal
 		plane_n = Vector_Normalise(plane_n);
 
-		// return signed shortest distance from point (p) to plane
-		auto dist = [&](vec3& p) {
-			vec3 n = Vector_Normalise(p);
-			return (plane_n.x * p.x + plane_n.y * p.y + plane_n.z * p.z - Vector_DotProduct(plane_p, plane_n));
+		// Return signed shortest distance from point to plane, plane normal must be normalised
+		auto dist = [&](vec3& p)
+			{
+				vec3 n = Vector_Normalise(p);
+				return (plane_n.x * p.x + plane_n.y * p.y + plane_n.z * p.z - Vector_DotProduct(plane_n, plane_p));
 			};
 
-		// Create 2 temp arrays to classify points either side of plane
-		// if dist > 0, point is inside plane
-		vec3* inside_points[3]; int nInsidePointCount = 0;
+		// Create two temporary storage arrays to classify points either side of plane
+		// If distance sign is positive, point lies on "inside" of plane
+		vec3* inside_points[3];  int nInsidePointCount = 0;
 		vec3* outside_points[3]; int nOutsidePointCount = 0;
 
-		// Get distance of each point to tri in plane
+		// Get signed distance of each point in triangle to plane
 		float d0 = dist(in_tri.p[0]);
 		float d1 = dist(in_tri.p[1]);
 		float d2 = dist(in_tri.p[2]);
@@ -310,106 +318,110 @@ private:
 		if (d2 >= 0) { inside_points[nInsidePointCount++] = &in_tri.p[2]; }
 		else { outside_points[nOutsidePointCount++] = &in_tri.p[2]; }
 
-		// Classify tri points, and break input tri into smaller out
-		// tris as required
+		// Now classify triangle points, and break the input triangle into 
+		// smaller output triangles if required. There are four possible
+		// outcomes...
 
-		if (nInsidePointCount == 0) {
-			// All points lie outside of plane
-			// Cull whole triangle
+		if (nInsidePointCount == 0)
+		{
+			// All points lie on the outside of plane, so clip whole triangle
+			// It ceases to exist
 
-			return 0;	// No returned tris are valid
+			return 0; // No returned triangles are valid
 		}
 
-		if (nInsidePointCount == 3) {
-			// All points lie on inside of plane
-			// do nothing, allow tri to pass through filter
-
+		if (nInsidePointCount == 3)
+		{
+			// All points lie on the inside of plane, so do nothing
+			// and allow the triangle to simply pass through
 			out_tri1 = in_tri;
 
-			return 1;	// return original tri
+			return 1; // Just the one returned original triangle is valid
 		}
 
-		if (nInsidePointCount == 1 && nOutsidePointCount == 2) {
-			// Tri should be clipped. 2 points lie outside plane
-			// Tri becomes smaller.
-		
+		if (nInsidePointCount == 1 && nOutsidePointCount == 2)
+		{
+			// Triangle should be clipped. As two points lie outside
+			// the plane, the triangle simply becomes a smaller triangle
 
-			// Copy appearance into a new tri
-			out_tri1.colour = in_tri.colour;
-			out_tri1.symbol = in_tri.symbol;
-			
-			// Inside point is valid so keep that
+			// Copy appearance info to new triangle
+			out_tri1.col = in_tri.col;
+			out_tri1.sym = in_tri.sym;
+
+			// The inside point is valid, so keep that...
 			out_tri1.p[0] = *inside_points[0];
 
-			// two new points are at the locations where
-			// original sides of the tri (lines) intersect with the plane
+			// but the two new points are at the locations where the 
+			// original sides of the triangle (lines) intersect with the plane
 			out_tri1.p[1] = Vector_IntersectPlane(plane_p, plane_n, *inside_points[0], *outside_points[0]);
-			out_tri1.p[1] = Vector_IntersectPlane(plane_p, plane_n, *inside_points[0], *outside_points[1]);
+			out_tri1.p[2] = Vector_IntersectPlane(plane_p, plane_n, *inside_points[0], *outside_points[1]);
 
-			return 1; // return new triangle
-
+			return 1; // Return the newly formed single triangle
 		}
 
-		if (nInsidePointCount == 2 && nOutsidePointCount == 1) {
-			// Tri should be clipped. As 2 points are inside the plane
-			// the clipped tri becomes a "quad".
-			// Quad is represented with 2 new triangles
+		if (nInsidePointCount == 2 && nOutsidePointCount == 1)
+		{
+			// Triangle should be clipped. As two points lie inside the plane,
+			// the clipped triangle becomes a "quad". Fortunately, we can
+			// represent a quad with two new triangles
 
-			// Copy appearance into new triangles
-			out_tri1.colour = in_tri.colour;
-			out_tri1.symbol = in_tri.symbol;
-			out_tri2.colour = in_tri.colour;
-			out_tri2.symbol = in_tri.symbol;
+			// Copy appearance info to new triangles
+			out_tri1.col = in_tri.col;
+			out_tri1.sym = in_tri.sym;
 
-			// The first tri consists of 2 inside points and a
-			// new point determined by the location where one
-			// side of the triangle intersects with the plane
+			out_tri2.col = in_tri.col;
+			out_tri2.sym = in_tri.sym;
+
+			// The first triangle consists of the two inside points and a new
+			// point determined by the location where one side of the triangle
+			// intersects with the plane
 			out_tri1.p[0] = *inside_points[0];
 			out_tri1.p[1] = *inside_points[1];
 			out_tri1.p[2] = Vector_IntersectPlane(plane_p, plane_n, *inside_points[0], *outside_points[0]);
 
-			// The second triangle is composed of one of the
-			// inside points. A new point is drawn by the intersection
-			// of the triangle and the plane, and newly created point above
+			// The second triangle is composed of one of he inside points, a
+			// new point determined by the intersection of the other side of the 
+			// triangle and the plane, and the newly created point above
 			out_tri2.p[0] = *inside_points[1];
 			out_tri2.p[1] = out_tri1.p[2];
 			out_tri2.p[2] = Vector_IntersectPlane(plane_p, plane_n, *inside_points[1], *outside_points[0]);
 
-			return 2; // return 2 newly formed triangles to form a quad
+			return 2; // Return two newly formed triangles which form a quad
 		}
 	}
 
 
+
 	CHAR_INFO GetColour(float lum) {
 		short bg_colour, fg_colour;
-		wchar_t symbol;
+		wchar_t sym;
 		int pixel_bw = (int)(13.0f * lum);
 
 		switch (pixel_bw) {
-			case 0: bg_colour = BG_BLACK; fg_colour = FG_BLACK; symbol = PIXEL_SOLID; break;
+			case 0: bg_colour = BG_BLACK; fg_colour = FG_BLACK; sym = PIXEL_SOLID; break;
 
-			case 1: bg_colour = BG_BLACK; fg_colour = FG_DARK_GREY; symbol = PIXEL_QUARTER; break;
-			case 2: bg_colour = BG_BLACK; fg_colour = FG_DARK_GREY; symbol = PIXEL_HALF; break;
-			case 3: bg_colour = BG_BLACK; fg_colour = FG_DARK_GREY; symbol = PIXEL_THREEQUARTERS; break;
-			case 4: bg_colour = BG_BLACK; fg_colour = FG_DARK_GREY; symbol = PIXEL_SOLID; break;
+			case 1: bg_colour = BG_BLACK; fg_colour = FG_DARK_GREY; sym = PIXEL_QUARTER; break;
+			case 2: bg_colour = BG_BLACK; fg_colour = FG_DARK_GREY; sym = PIXEL_HALF; break;
+			case 3: bg_colour = BG_BLACK; fg_colour = FG_DARK_GREY; sym = PIXEL_THREEQUARTERS; break;
+			case 4: bg_colour = BG_BLACK; fg_colour = FG_DARK_GREY; sym = PIXEL_SOLID; break;
 
-			case 5: bg_colour = BG_DARK_GREY; fg_colour = FG_GREY; symbol = PIXEL_QUARTER; break;
-			case 6: bg_colour = BG_DARK_GREY; fg_colour = FG_GREY; symbol = PIXEL_HALF; break;
-			case 7: bg_colour = BG_DARK_GREY; fg_colour = FG_GREY; symbol = PIXEL_THREEQUARTERS; break;
-			case 8: bg_colour = BG_DARK_GREY; fg_colour = FG_GREY; symbol = PIXEL_SOLID; break;
+			case 5: bg_colour = BG_DARK_GREY; fg_colour = FG_GREY; sym = PIXEL_QUARTER; break;
+			case 6: bg_colour = BG_DARK_GREY; fg_colour = FG_GREY; sym = PIXEL_HALF; break;
+			case 7: bg_colour = BG_DARK_GREY; fg_colour = FG_GREY; sym = PIXEL_THREEQUARTERS; break;
+			case 8: bg_colour = BG_DARK_GREY; fg_colour = FG_GREY; sym = PIXEL_SOLID; break;
 
-			case 9: bg_colour = BG_GREY; fg_colour = FG_WHITE; symbol = PIXEL_QUARTER; break;
-			case 10: bg_colour = BG_GREY; fg_colour = FG_WHITE; symbol = PIXEL_HALF; break;
-			case 11: bg_colour = BG_GREY; fg_colour = FG_WHITE; symbol = PIXEL_THREEQUARTERS; break;
-			case 12: bg_colour = BG_GREY; fg_colour = FG_WHITE; symbol = PIXEL_SOLID; break;
+			case 9: bg_colour = BG_GREY; fg_colour = FG_WHITE; sym = PIXEL_QUARTER; break;
+			case 10: bg_colour = BG_GREY; fg_colour = FG_WHITE; sym = PIXEL_HALF; break;
+			case 11: bg_colour = BG_GREY; fg_colour = FG_WHITE; sym = PIXEL_THREEQUARTERS; break;
+			case 12: bg_colour = BG_GREY; fg_colour = FG_WHITE; sym = PIXEL_SOLID; break;
 			default:
-				bg_colour = BG_BLACK; fg_colour = FG_BLACK; symbol = PIXEL_SOLID;
+				bg_colour = BG_BLACK; fg_colour = FG_BLACK; sym = PIXEL_SOLID;
 
 		}
 
 		CHAR_INFO col;
 		col.Attributes = bg_colour | fg_colour;
-		col.Char.UnicodeChar = symbol;
+		col.Char.UnicodeChar = sym;
 
 		return col;
 	}
@@ -429,9 +441,12 @@ public:
 	bool OnUserUpdate(float elapsedTime) override
 	{/*
 
-		vec3d vForward = Vector_Multiply(lookdir, 8.0f * elapsedTime); */
+		vec3 vForward = Vector_Multiply(lookdir, 8.0f * elapsedTime); */
 
 		// Camera Matrix
+
+		
+
 		vec3 up = { 0.0f,1.0f,0.0f };
 		vec3 target = { 0.0f,0.0f,1.0f };
 		matrix4x4 ninety = Matrix_RotAxisY(0.5f * PI);
@@ -440,13 +455,14 @@ public:
 		vec3 vShoulderRail = Vector_Multiply(s, 8.0f * elapsedTime);
 		matrix4x4 y = Matrix_RotAxisY(eye.yaw);
 		matrix4x4 p = Matrix_RotAxisX(eye.pitch);
-		vec3 yaw = Matrix_MultiplyVector(y,vShoulderRail);
-		vec3 pitch = Matrix_MultiplyVector(p, vShoulderRail);
+		vec3 anglesin = Matrix_MultiplyVector(y,vShoulderRail);
+		vec3 anglecos = Matrix_MultiplyVector(p, vShoulderRail);
 		matrix4x4 camMatrixRot = Matrix_MultiplyMatrix(y,p);
 		lookdir = Matrix_MultiplyVector(camMatrixRot, target);
 		target = Vector_Add(eye.pos, lookdir);		
 		matrix4x4 camMatrix = Matrix_PointAt(eye.pos, target, up);
 		matrix4x4 matView = Matrix_QuickInvert(camMatrix);
+
 
 		// ::::: KEYBINDINGS :::::
 		if (GetKey(L'E').bHeld)	// Up
@@ -487,10 +503,8 @@ public:
 
 		// ::::: ROTATION MATRIX :::::
 		matrix4x4 matRotZ, matRotX;
-		// rotAngle += 1.0f * elapsedTime;
-
-		matRotZ = Matrix_RotAxisZ(rotAngle * 0.5f);
-		matRotX = Matrix_RotAxisX(rotAngle);
+		matRotZ = Matrix_RotAxisZ(DegToRad(eye.pitch));
+		matRotX = Matrix_RotAxisX(DegToRad(eye.pitch));
 
 		matrix4x4 matTranslation;
 		matTranslation = Matrix_MakeTranslate(0.0f, 0.0f, camZOffset);
@@ -501,8 +515,7 @@ public:
 		matWorld = Matrix_MultiplyMatrix(matWorld, matTranslation);
 
 
-
-		// Draw Triangles
+		// Draw triangles
 		for (auto tri : testMesh.tris)
 		{
 			triangle triProjected, triTransformed, triViewed;
@@ -536,12 +549,12 @@ public:
 				light_direction = Vector_Normalise(light_direction);
 
 				// How aligned are the light direction and triangle normal?
-				float dp = max(0.1f, Vector_DotProduct(light_direction, normal));
+				float dp = max(0.01f, Vector_DotProduct(light_direction, normal));
 
 				// Get colour as required using dot product
 				CHAR_INFO col = GetColour(dp);
-				triTransformed.colour = col.Attributes;
-				triTransformed.symbol = col.Char.UnicodeChar;
+				triTransformed.col = col.Attributes;
+				triTransformed.sym = col.Char.UnicodeChar;
 
 				// Convert world space into view space
 				triViewed.p[0] = Matrix_MultiplyVector(matView, triTransformed.p[0]);
@@ -551,7 +564,7 @@ public:
 				// Clip viewed triangle against near plane. Could form 2 additional tris
 				int nClippedTriangles = 0;
 				triangle clipped[2];
-				nClippedTriangles = Tri_ClipAgainstPlane({ 0.0f,0.0f,0.1f }, { 0.0f,0.0f,1.0f }, triViewed, clipped[0], clipped[1]);
+				nClippedTriangles = Triangle_ClipAgainstPlane({ 0.0f,0.0f,0.1f }, { 0.0f,0.0f,1.0f }, triViewed, clipped[0], clipped[1]);
 
 				for (int n = 0; n < nClippedTriangles; n++)
 				{
@@ -559,8 +572,8 @@ public:
 					triProjected.p[0] = Matrix_MultiplyVector(projection_matrix, clipped[n].p[0]);
 					triProjected.p[1] = Matrix_MultiplyVector(projection_matrix, clipped[n].p[1]);
 					triProjected.p[2] = Matrix_MultiplyVector(projection_matrix, clipped[n].p[2]);
-					triProjected.colour = clipped[n].colour;
-					triProjected.symbol = clipped[n].symbol;
+					triProjected.col = clipped[n].col;
+					triProjected.sym = clipped[n].sym;
 
 					// Scale into view, we moved the normalising into cartesian space
 					// out of the matrix.vector function from the previous videos, so
@@ -632,10 +645,10 @@ public:
 					// comment is almost completely and utterly justified
 					switch (p)
 					{
-					case 0:	nTrisToAdd = Tri_ClipAgainstPlane({ 0.0f, 0.0f, 0.0f }, { 0.0f, 1.0f, 0.0f }, test, clipped[0], clipped[1]); break;
-					case 1:	nTrisToAdd = Tri_ClipAgainstPlane({ 0.0f, (float)ScreenHeight() - 1, 0.0f }, { 0.0f, -1.0f, 0.0f }, test, clipped[0], clipped[1]); break;
-					case 2:	nTrisToAdd = Tri_ClipAgainstPlane({ 0.0f, 0.0f, 0.0f }, { 1.0f, 0.0f, 0.0f }, test, clipped[0], clipped[1]); break;
-					case 3:	nTrisToAdd = Tri_ClipAgainstPlane({ (float)ScreenWidth() - 1, 0.0f, 0.0f }, { -1.0f, 0.0f, 0.0f }, test, clipped[0], clipped[1]); break;
+					case 0:	nTrisToAdd = Triangle_ClipAgainstPlane({ 0.0f, 0.0f, 0.0f }, { 0.0f, 1.0f, 0.0f }, test, clipped[0], clipped[1]); break;
+					case 1:	nTrisToAdd = Triangle_ClipAgainstPlane({ 0.0f, (float)ScreenHeight() - 1, 0.0f }, { 0.0f, -1.0f, 0.0f }, test, clipped[0], clipped[1]); break;
+					case 2:	nTrisToAdd = Triangle_ClipAgainstPlane({ 0.0f, 0.0f, 0.0f }, { 1.0f, 0.0f, 0.0f }, test, clipped[0], clipped[1]); break;
+					case 3:	nTrisToAdd = Triangle_ClipAgainstPlane({ (float)ScreenWidth() - 1, 0.0f, 0.0f }, { -1.0f, 0.0f, 0.0f }, test, clipped[0], clipped[1]); break;
 					}
 
 					// Clipping may yield a variable number of triangles, so
@@ -651,11 +664,10 @@ public:
 			// Draw the transformed, viewed, clipped, projected, sorted, clipped triangles
 			for (auto& t : listTriangles)
 			{
-				FillTriangle(t.p[0].x, t.p[0].y, t.p[1].x, t.p[1].y, t.p[2].x, t.p[2].y, t.symbol, t.colour);
-				//DrawTriangle(t.p[0].x, t.p[0].y, t.p[1].x, t.p[1].y, t.p[2].x, t.p[2].y, PIXEL_SOLID, FG_BLACK);
+				FillTriangle(t.p[0].x, t.p[0].y, t.p[1].x, t.p[1].y, t.p[2].x, t.p[2].y, t.sym, t.col);
+				DrawTriangle(t.p[0].x, t.p[0].y, t.p[1].x, t.p[1].y, t.p[2].x, t.p[2].y, PIXEL_SOLID, FG_BLACK);
 			}
 		}
-
 
 		return true;
 	}
