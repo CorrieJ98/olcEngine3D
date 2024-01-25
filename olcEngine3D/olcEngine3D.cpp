@@ -128,16 +128,24 @@ private:
 		vec3 newRight = Vector_CrossProduct(newUp, newFwd);
 
 		// Construct Dimension and Translation Matrix
-		matrix4x4 matDT;
-		matDT.m[0][0] = newRight.x;		matDT.m[0][2] = newRight.z;
-		matDT.m[1][0] = newUp.x;		matDT.m[1][2] = newUp.z;
-		matDT.m[2][0] = newFwd.x;		matDT.m[2][2] = newFwd.z;	
-		matDT.m[3][0] = pos.x;			matDT.m[3][2] = pos.z;
-		matDT.m[0][1] = newRight.y;		matDT.m[0][3] = 0.0f;
-		matDT.m[1][1] = newUp.y;		matDT.m[1][3] = 0.0f;
-		matDT.m[2][1] = newFwd.y;		matDT.m[2][3] = 0.0f;
-		matDT.m[3][1] = pos.y;			matDT.m[3][3] = 1.0f;
-		return matDT;
+		matrix4x4 m;
+		m.m[0][0] = newRight.x;
+		m.m[0][1] = newRight.y;
+		m.m[0][2] = newRight.z;
+		m.m[0][3] = 0.0f;
+		m.m[1][0] = newUp.x;
+		m.m[1][1] = newUp.y;
+		m.m[1][2] = newUp.z;
+		m.m[1][3] = 0.0f;
+		m.m[2][0] = newFwd.x;
+		m.m[2][1] = newFwd.y;
+		m.m[2][2] = newFwd.z;
+		m.m[2][3] = 0.0f;
+		m.m[3][0] = pos.x;
+		m.m[3][1] = pos.y;
+		m.m[3][2] = pos.z;
+		m.m[3][3] = 1.0f;
+		return m;
 	}
 
 	matrix4x4 Matrix_QuickInvert(matrix4x4 &m) // Only for Rotation/Translation Matrices
