@@ -93,7 +93,7 @@ private:
 	camera eye;
 	float camZOffset = 6.0f;
 	vec3 lookdir;
-	const float PI = 3.141592653;
+	const float PI = 3.1415926;
 	string objects[4] = { "axis.obj","mountains.obj","spaceship.obj","teapot.obj" };
 
 	float RadToDeg(float rad) {
@@ -114,9 +114,9 @@ private:
 		return id;
 	}
 
-	matrix4x4 Matrix_LookAt(vec3 &pos, float &yaw, float &pitch, vec3 out) {
+	void Matrix_LookAt(vec3 &pos, float &yaw, float &pitch, vec3 vout, matrix4x4 mout) {
 		matrix4x4 m;
-		vec3 fwd;
+		vec3 fwd = {0.0f, 0.0f, 1.0f};
 		fwd = { (pos.x - fwd.x),(pos.y - fwd.y),(pos.z - fwd.z) };
 		fwd = Vector_Normalise(fwd);
 
@@ -129,14 +129,19 @@ private:
 		m.m[0][0] = right.x;
 		m.m[0][1] = right.y;
 		m.m[0][2] = right.z;
-		m.m[1][1] = up.x;
-		m.m[1][2] = up.y;
-		m.m[1][3] = up.z;
-		m.m[2][1] = fwd.x;
-		m.m[2][2] = fwd.y;
-		m.m[2][3] = fwd.z;
-
-		return m;
+		m.m[0][3] = 0.0f;
+		m.m[1][0] = up.x;
+		m.m[1][1] = up.y;
+		m.m[1][2] = up.z;
+		m.m[1][3] = 0.0f;
+		m.m[2][0] = fwd.x;
+		m.m[2][1] = fwd.y;
+		m.m[2][2] = fwd.z;
+		m.m[2][3] = 0.0f;
+		m.m[3][0] = pos.x;
+		m.m[3][1] = pos.y;
+		m.m[3][2] = pos.z;
+		m.m[3][3] = 1.0f;
 	}
 
 	// old LookAt matrix
@@ -166,15 +171,15 @@ private:
 		return matDT;
 	}*/
 
-	matrix4x4 Matrix_QuickInvert(matrix4x4 &m) // Only for Rotation/Translation Matrices
+	matrix4x4 Matrix_QuickInvert(matrix4x4 &inm) // Only for Rotation/Translation Matrices
 	{
 		matrix4x4 matrix;
-		matrix.m[0][0] = m.m[0][0]; matrix.m[0][1] = m.m[1][0]; matrix.m[0][2] = m.m[2][0]; matrix.m[0][3] = 0.0f;
-		matrix.m[1][0] = m.m[0][1]; matrix.m[1][1] = m.m[1][1]; matrix.m[1][2] = m.m[2][1]; matrix.m[1][3] = 0.0f;
-		matrix.m[2][0] = m.m[0][2]; matrix.m[2][1] = m.m[1][2]; matrix.m[2][2] = m.m[2][2]; matrix.m[2][3] = 0.0f;
-		matrix.m[3][0] = -(m.m[3][0] * matrix.m[0][0] + m.m[3][1] * matrix.m[1][0] + m.m[3][2] * matrix.m[2][0]);
-		matrix.m[3][1] = -(m.m[3][0] * matrix.m[0][1] + m.m[3][1] * matrix.m[1][1] + m.m[3][2] * matrix.m[2][1]);
-		matrix.m[3][2] = -(m.m[3][0] * matrix.m[0][2] + m.m[3][1] * matrix.m[1][2] + m.m[3][2] * matrix.m[2][2]);
+		matrix.m[0][0] = inm.m[0][0]; matrix.m[0][1] = inm.m[1][0]; matrix.m[0][2] = inm.m[2][0]; matrix.m[0][3] = 0.0f;
+		matrix.m[1][0] = inm.m[0][1]; matrix.m[1][1] = inm.m[1][1]; matrix.m[1][2] = inm.m[2][1]; matrix.m[1][3] = 0.0f;
+		matrix.m[2][0] = inm.m[0][2]; matrix.m[2][1] = inm.m[1][2]; matrix.m[2][2] = inm.m[2][2]; matrix.m[2][3] = 0.0f;
+		matrix.m[3][0] = -(inm.m[3][0] * matrix.m[0][0] + inm.m[3][1] * matrix.m[1][0] + inm.m[3][2] * matrix.m[2][0]);
+		matrix.m[3][1] = -(inm.m[3][0] * matrix.m[0][1] + inm.m[3][1] * matrix.m[1][1] + inm.m[3][2] * matrix.m[2][1]);
+		matrix.m[3][2] = -(inm.m[3][0] * matrix.m[0][2] + inm.m[3][1] * matrix.m[1][2] + inm.m[3][2] * matrix.m[2][2]);
 		matrix.m[3][3] = 1.0f;
 		return matrix;
 	}
@@ -274,6 +279,7 @@ private:
 	}
 
 	float Vector_Length(vec3& vec) {
+		// could be replaced by Q_rsqrt for more optimization
 		return sqrtf(Vector_DotProduct(vec, vec));
 	}
 
@@ -288,21 +294,6 @@ private:
 		v.y = v1.z * v2.x - v1.x * v2.z;
 		v.z = v1.x * v2.y - v1.y * v2.x;
 		return v;
-	}
-
-	float Q_rsqrt(float x) {
-		// result of 1/sqrt(x)
-		long i;
-		float x2, y;
-		const float threehalves = 1.5f;
-
-		x2 = y * 0.5f;
-		y = x;
-		i = *(long*)&y;
-		i = 0x05f3759df - (i >> 1);
-		y = *(float*)&i;
-		y = y * (threehalves - (x2 * y * y));	// first newtonian iteration
-	//	y = y * (threehalves - (x2 * y * y));	// second newtonian iteration (obsolete)
 	}
 
 	vec3 Vector_IntersectPlane(vec3& plane_p, vec3& plane_n, vec3& lineStart, vec3& lineEnd) {
@@ -495,12 +486,8 @@ public:
 		matrix4x4 pitchTransform = Matrix_RotAxisX(eye.pitch);
 		matrix4x4 transform = Matrix_MultiplyMatrix(pitchTransform, yawTransform);
 
-		vec3 lookdir; // x=right	y=up	z=fwd
-		matrix4x4 lookat = Matrix_LookAt(eye.pos, eye.yaw, eye.pitch, lookdir);
-
-
-		matrix4x4 matView = Matrix_QuickInvert(lookat);
-
+		vec3 vLookdir;		// fwd look direction
+		matrix4x4 mLookAt;	// lookat matrix
 
 		// ::::: KEYBINDINGS :::::
 		if (GetKey(L'E').bHeld)	// Up
@@ -533,6 +520,10 @@ public:
 		if (GetKey(VK_DOWN).bHeld)	// Pitch Down
 			eye.pitch += 2.0f * elapsedTime;
 
+
+		Matrix_LookAt(eye.pos, eye.yaw, eye.pitch, vLookdir, mLookAt);
+		matrix4x4 lookatinvert = Matrix_QuickInvert(mLookAt);	// old matView
+		matrix4x4 matView;
 
 		// Clear screen
 		Fill(0, 0, ScreenWidth(), ScreenHeight(), PIXEL_SOLID, FG_BLACK);
@@ -613,9 +604,7 @@ public:
 					triProjected.col = clipped[n].col;
 					triProjected.sym = clipped[n].sym;
 
-					// Scale into view, we moved the normalising into cartesian space
-					// out of the matrix.vector function from the previous videos, so
-					// do this manually
+					// Scale into view,
 					triProjected.p[0] = Vector_Divide(triProjected.p[0], triProjected.p[0].w);
 					triProjected.p[1] = Vector_Divide(triProjected.p[1], triProjected.p[1].w);
 					triProjected.p[2] = Vector_Divide(triProjected.p[2], triProjected.p[2].w);
