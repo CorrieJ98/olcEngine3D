@@ -114,7 +114,7 @@ private:
 		return id;
 	}
 
-	matrix4x4 Matrix_LookAt(vec3& pos, float& toZrad) {
+	matrix4x4 Matrix_LookAt(vec3 &pos, float &yaw, float &pitch, vec3 out) {
 		matrix4x4 m;
 		vec3 fwd;
 		fwd = { (pos.x - fwd.x),(pos.y - fwd.y),(pos.z - fwd.z) };
@@ -474,14 +474,14 @@ public:
 
 		
 
-		vec3 up = { 0.0f,1.0f,0.0f };
+		/*
+		vec3 up = {0.0f,1.0f,0.0f};
 		vec3 target = { 0.0f,0.0f,1.0f };
 		matrix4x4 ninety = Matrix_RotAxisY(0.5f * PI);
 		vec3 s = Matrix_MultiplyVector(ninety, lookdir);
 		vec3 vForward = Vector_Multiply(lookdir, 8.0f * elapsedTime);
 		vec3 vShoulderRail = Vector_Multiply(s, 8.0f * elapsedTime);
-		matrix4x4 y = Matrix_RotAxisY(eye.yaw);
-		matrix4x4 p = Matrix_RotAxisX(eye.pitch);
+
 		vec3 anglesin = Matrix_MultiplyVector(y,vShoulderRail);
 		vec3 anglecos = Matrix_MultiplyVector(p, vShoulderRail);
 		matrix4x4 camMatrixRot = Matrix_MultiplyMatrix(y,p);
@@ -490,6 +490,16 @@ public:
 		//matrix4x4 camMatrix = Matrix_PointAt(eye.pos, target, up);
 		matrix4x4 camMatrix = Matrix_LookAt(eye.pos, eye.pitch);
 		matrix4x4 matView = Matrix_QuickInvert(camMatrix);
+		*/
+		matrix4x4 yawTransform = Matrix_RotAxisY(eye.yaw);
+		matrix4x4 pitchTransform = Matrix_RotAxisX(eye.pitch);
+		matrix4x4 transform = Matrix_MultiplyMatrix(pitchTransform, yawTransform);
+
+		vec3 lookdir; // x=right	y=up	z=fwd
+		matrix4x4 lookat = Matrix_LookAt(eye.pos, eye.yaw, eye.pitch, lookdir);
+
+
+		matrix4x4 matView = Matrix_QuickInvert(lookat);
 
 
 		// ::::: KEYBINDINGS :::::
@@ -500,16 +510,16 @@ public:
 			eye.pos.y -= 8.0f * elapsedTime;
 
 		if (GetKey(L'A').bHeld)	// Left
-			eye.pos = Vector_Subtract(eye.pos, vShoulderRail);
+			eye.pos = Vector_Subtract(eye.pos,lookdir);
 
 		if (GetKey(L'D').bHeld)	// Right
-			eye.pos = Vector_Add(eye.pos, vShoulderRail);
+			eye.pos = Vector_Add(eye.pos, lookdir);
 
 		if (GetKey(L'W').bHeld)	// Forward
-			eye.pos = Vector_Add(eye.pos, vForward);
+			eye.pos = Vector_Add(eye.pos, lookdir);
 
 		if (GetKey(L'S').bHeld) // Back
-			eye.pos = Vector_Subtract(eye.pos, vForward);
+			eye.pos = Vector_Subtract(eye.pos, lookdir);
 
 		if (GetKey(VK_LEFT).bHeld)	// Yaw Left
 			eye.yaw -= 2.0f * elapsedTime;
@@ -531,8 +541,8 @@ public:
 
 		// ::::: ROTATION MATRIX :::::
 		matrix4x4 matRotZ, matRotX;
-		matRotZ = Matrix_RotAxisZ(DegToRad(eye.pitch));
-		matRotX = Matrix_RotAxisX(DegToRad(eye.pitch));
+		matRotZ = Matrix_RotAxisZ(eye.pitch);
+		matRotX = Matrix_RotAxisX(eye.yaw);
 
 		matrix4x4 matTranslation;
 		matTranslation = Matrix_MakeTranslate(0.0f, 0.0f, camZOffset);
