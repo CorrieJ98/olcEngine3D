@@ -114,7 +114,33 @@ private:
 		return id;
 	}
 
-	matrix4x4 Matrix_PointAt(vec3 &pos, vec3 &target, vec3 &up){
+	matrix4x4 Matrix_LookAt(vec3& pos, float& toZrad) {
+		matrix4x4 m;
+		vec3 fwd;
+		fwd = { (pos.x - fwd.x),(pos.y - fwd.y),(pos.z - fwd.z) };
+		fwd = Vector_Normalise(fwd);
+
+		vec3 up = { 0.0f,1.0f,0.0 };
+
+		vec3 right = Vector_CrossProduct(up, fwd);
+		right = Vector_Normalise(right);
+		up = Vector_CrossProduct(fwd, right);
+
+		m.m[0][0] = right.x;
+		m.m[0][1] = right.y;
+		m.m[0][2] = right.z;
+		m.m[1][1] = up.x;
+		m.m[1][2] = up.y;
+		m.m[1][3] = up.z;
+		m.m[2][1] = fwd.x;
+		m.m[2][2] = fwd.y;
+		m.m[2][3] = fwd.z;
+
+		return m;
+	}
+
+	// old LookAt matrix
+	/*	matrix4x4 Matrix_PointAt(vec3& pos, vec3& target, vec3& up) {
 		// Calculate new forward (x) direction
 		vec3 newFwd = Vector_Subtract(target, pos);
 		newFwd = Vector_Normalise(newFwd);
@@ -138,7 +164,7 @@ private:
 		matDT.m[2][1] = newFwd.y;		matDT.m[2][3] = 0.0f;
 		matDT.m[3][1] = pos.y;			matDT.m[3][3] = 1.0f;
 		return matDT;
-	}
+	}*/
 
 	matrix4x4 Matrix_QuickInvert(matrix4x4 &m) // Only for Rotation/Translation Matrices
 	{
@@ -461,7 +487,8 @@ public:
 		matrix4x4 camMatrixRot = Matrix_MultiplyMatrix(y,p);
 		lookdir = Matrix_MultiplyVector(camMatrixRot, target);
 		target = Vector_Add(eye.pos, lookdir);		
-		matrix4x4 camMatrix = Matrix_PointAt(eye.pos, target, up);
+		//matrix4x4 camMatrix = Matrix_PointAt(eye.pos, target, up);
+		matrix4x4 camMatrix = Matrix_LookAt(eye.pos, eye.pitch);
 		matrix4x4 matView = Matrix_QuickInvert(camMatrix);
 
 
