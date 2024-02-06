@@ -23,7 +23,7 @@ struct mesh {
 
 	vector<triangle> tris;
 
-	bool LoadFromObjectFile(string sFilename)
+	bool LoadFromObjectFile(string sFilename, vec3 vPos)
 	{
 		ifstream file(sFilename);
 		if (!file.is_open())
@@ -48,6 +48,9 @@ struct mesh {
 			{
 				vec3 v;
 				s >> junk >> v.x >> v.y >> v.z;
+				
+				v.x += vPos.x; v.y += vPos.y; v.z += vPos.z;
+
 				verts.push_back(v);
 			}
 
@@ -89,6 +92,7 @@ public:
 private:
 	// ::::: VARIABLE INITIALISATION :::::
 	mesh testMesh;
+	mesh spaceship;
 	matrix4x4 projection_matrix;
 	camera eye;
 	float camZOffset = 6.0f;
@@ -251,11 +255,11 @@ private:
 		return { v1.x / k, v1.y / k, v1.z / k };
 	}
 
-	float Vector_DotProduct(vec3& v1, vec3& v2) {
+	float Vector_DotProduct(vec3 &v1, vec3 &v2) {
 		return { v1.x * v2.x + v1.y * v2.y + v1.z * v2.z };
 	}
 
-	float Vector_Length(vec3& vec) {
+	float Vector_Length(vec3 &vec) {
 		return sqrtf(Vector_DotProduct(vec, vec));
 	}
 
@@ -264,7 +268,7 @@ private:
 		return { vec.x / l, vec.y / l, vec.z / l };
 	}
 
-	vec3 Vector_CrossProduct(vec3& v1, vec3& v2) {
+	vec3 Vector_CrossProduct(vec3 &v1, vec3 &v2) {
 		vec3 v;
 		v.x = v1.y * v2.z - v1.z * v2.y;
 		v.y = v1.z * v2.x - v1.x * v2.z;
@@ -272,7 +276,7 @@ private:
 		return v;
 	}
 
-	float Q_rsqrt(float x) {
+	float Q_rsqrt(float x) {	// fanboy shit
 		// result of 1/sqrt(x)
 		long i;
 		float x2, y;
@@ -400,7 +404,6 @@ private:
 	}
 
 
-
 	CHAR_INFO GetColour(float lum) {
 		short bg_colour, fg_colour;
 		wchar_t sym;
@@ -440,7 +443,9 @@ public:
 	bool OnUserCreate() override
 	{
 		// .obj file import
-		testMesh.LoadFromObjectFile(objects[0]);
+		testMesh.LoadFromObjectFile(objects[0], {0.0f,0.0f,0.0f});
+		spaceship.LoadFromObjectFile(objects[2], { 10.0f,5.0f,-7.0f });
+		
 
 		// Projection Matrix
 		projection_matrix = Matrix_MakeProjection(90.0f, (float)ScreenHeight() / (float)ScreenWidth(), 0.01f, 1000.0f);
@@ -523,7 +528,6 @@ public:
 		matWorld = Matrix_MultiplyMatrix(matRotZ, matRotX);
 		matWorld = Matrix_MultiplyMatrix(matWorld, matTranslation);
 
-
 		// Draw triangles
 		for (auto tri : testMesh.tris)
 		{
@@ -532,7 +536,7 @@ public:
 			triTransformed.p[0] = Matrix_MultiplyVector(matWorld, tri.p[0]);
 			triTransformed.p[1] = Matrix_MultiplyVector(matWorld, tri.p[1]);
 			triTransformed.p[2] = Matrix_MultiplyVector(matWorld, tri.p[2]);
-			
+
 			// Calculate triangle Normal
 			vec3 normal, line1, line2;
 
@@ -551,10 +555,10 @@ public:
 
 
 			// ::::: CULLING :::::
-			if (Vector_DotProduct(normal,camRaycast) < 0.0f) {
+			if (Vector_DotProduct(normal, camRaycast) < 0.0f) {
 
 				// Illumination
-				vec3 light_direction = { 0.0f, 1.0f,-1.0f};
+				vec3 light_direction = { 0.0f, 1.0f,-1.0f };
 				light_direction = Vector_Normalise(light_direction);
 
 				// How aligned are the light direction and triangle normal?
@@ -616,7 +620,7 @@ public:
 				}
 			}
 		}
-
+		
 		// Sort tris back to front
 		sort(vecTrianglesToRaster.begin(), vecTrianglesToRaster.end(), [](triangle& t1, triangle& t2)
 			{

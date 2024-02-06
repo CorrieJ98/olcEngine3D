@@ -323,7 +323,6 @@ public:
 	{
 		m_nScreenWidth = 80;
 		m_nScreenHeight = 30;
-
 		m_hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
 		m_hConsoleIn = GetStdHandle(STD_INPUT_HANDLE);
 
