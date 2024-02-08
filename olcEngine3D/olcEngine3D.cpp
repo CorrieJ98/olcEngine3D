@@ -3,7 +3,6 @@
 #include <strstream>
 #include <algorithm>
 #include <iostream>
-#include "quaternion.h"
 
 using namespace std;
 
@@ -19,7 +18,22 @@ struct triangle {
 	wchar_t sym;
 	short col;
 };
-struct mesh {
+struct matrix4x4 {
+	float m[4][4] = { 0 };
+};
+struct camera {
+	vec3 pos;
+	float pitch, yaw;
+
+	// Im certain this is a terrible idea
+	float pcos = cosf(pitch);
+	float psin = sinf(pitch);
+	float ycos = cosf(yaw);
+	float ysin = sinf(yaw);
+};
+
+// to be replaced with 'Class Mesh'
+struct mesh{
 
 	vector<triangle> tris;
 
@@ -64,19 +78,66 @@ struct mesh {
 		return true;
 	}
 };
-struct matrix4x4 {
-	float m[4][4] = { 0 };
-};
-struct camera {
-	vec3 pos;
-	float pitch, yaw;
 
-	// Im certain this is a terrible idea
-	float pcos = cosf(pitch);
-	float psin = sinf(pitch);
-	float ycos = cosf(yaw);
-	float ysin = sinf(yaw);
+class Mesh
+{
+public:
+	Mesh();
+	~Mesh();
+
+private:
+	vector<triangle> tris;
+	
+	bool LoadFromObjectFile(string sFilename)
+	{
+		ifstream file(sFilename);
+		if (!file.is_open())
+			return false;
+
+		// Local cache of verts
+		vector<vec3> verts;
+
+		// loop through .obj file for relevant data
+		while (!file.eof())
+		{
+			// dirty assumption that no line has >128 characters
+			char line[128];
+			file.getline(line, 128);
+
+			char junk;
+			strstream s;
+			s << line;
+
+			// extract VERT values from obj then add to local cache
+			if (line[0] == 'v')
+			{
+				vec3 v;
+				s >> junk >> v.x >> v.y >> v.z;
+				verts.push_back(v);
+			}
+
+
+			// build TRIS from cached VERT values
+			if (line[0] == 'f')
+			{
+				int f[3];
+				s >> junk >> f[0] >> f[1] >> f[2];
+				tris.push_back({ verts[f[0] - 1], verts[f[1] - 1], verts[f[2] - 1] });
+			}
+		}
+
+		return true;
+	}
 };
+
+Mesh::Mesh()
+{
+}
+
+Mesh::~Mesh()
+{
+} 
+
 
 class olcEngine3D : public olcConsoleGameEngine
 {
@@ -85,7 +146,6 @@ public:
 	{
 		m_sAppName = L"3D Demo";
 	}
-
 private:
 	// ::::: VARIABLE INITIALISATION :::::
 	mesh testMesh;
@@ -113,7 +173,6 @@ private:
 		id.m[3][3] = 1.0f;
 		return id;
 	}
-
 	matrix4x4 Matrix_PointAt(vec3 &pos, vec3 &target, vec3 &up){
 		// Calculate new forward (x) direction
 		vec3 newFwd = Vector_Subtract(target, pos);
@@ -147,7 +206,6 @@ private:
 		m.m[3][3] = 1.0f;
 		return m;
 	}
-
 	matrix4x4 Matrix_QuickInvert(matrix4x4 &m) // Only for Rotation/Translation Matrices
 	{
 		matrix4x4 matrix;
@@ -160,7 +218,6 @@ private:
 		matrix.m[3][3] = 1.0f;
 		return matrix;
 	}
-
 	matrix4x4 Matrix_RotAxisX(float angleRad) {
 		matrix4x4 matRotX;
 		matRotX.m[0][0] = 1.0f;
@@ -171,7 +228,6 @@ private:
 		matRotX.m[3][3] = 1.0f;
 		return matRotX;
 	}
-
 	matrix4x4 Matrix_RotAxisZ(float angleRad) {
 		matrix4x4 matRotZ;
 		matRotZ.m[0][0] = cosf(angleRad);
@@ -182,7 +238,6 @@ private:
 		matRotZ.m[3][3] = 1.0f;
 		return matRotZ;
 	}
-
 	matrix4x4 Matrix_RotAxisY(float angleRad) {
 		matrix4x4 matRotY;
 		matRotY.m[0][0] = cosf(angleRad);
@@ -193,7 +248,6 @@ private:
 		matRotY.m[3][3] = 1.0f;
 		return matRotY;
 	}
-
 	matrix4x4 Matrix_MakeTranslate(float x, float y, float z) {
 		matrix4x4 matT;
 		matT.m[0][0] = 1.0f;
@@ -205,7 +259,6 @@ private:
 		matT.m[3][2] = z;
 		return matT;
 	}
-
 	matrix4x4 Matrix_MakeProjection(float fov, float aspect_ratio, float zNear, float zFar){
 		float fovRad = 1.0f / tanf(fov * 0.5f / 180.0f * PI);
 		matrix4x4 matProj;
@@ -217,7 +270,6 @@ private:
 		matProj.m[3][3] = 0.0f;
 		return matProj;
 	}
-
 	matrix4x4 Matrix_MultiplyMatrix(matrix4x4& m1, matrix4x4& m2) {
 		matrix4x4 mout;
 		for (int c = 0; c < 4; c++)
@@ -225,7 +277,6 @@ private:
 				mout.m[r][c] = m1.m[r][0] * m2.m[0][c] + m1.m[r][1] * m2.m[1][c] + m1.m[r][2] * m2.m[2][c] + m1.m[r][3] * m2.m[3][c];
 		return mout;
 	}
-
 	vec3 Matrix_MultiplyVector(matrix4x4& m, vec3& vin) {
 		vec3 vout;
 		vout.x = vin.x * m.m[0][0] + vin.y * m.m[1][0] + vin.z * m.m[2][0] + vin.w * m.m[3][0];
@@ -234,36 +285,28 @@ private:
 		vout.w = vin.x * m.m[0][3] + vin.y * m.m[1][3] + vin.z * m.m[2][3] + vin.w * m.m[3][3];
 		return vout;
 	}
-
 	vec3 Vector_Add(vec3& v1, vec3& v2) {
 		return { v1.x + v2.x, v1.y + v2.y, v1.z + v2.z };
 	}
-
 	vec3 Vector_Subtract(vec3& v1, vec3& v2) {
 		return { v1.x - v2.x, v1.y - v2.y, v1.z - v2.z };
 	}
-
 	vec3 Vector_Multiply(vec3& v1, float k) {
 		return { v1.x * k, v1.y * k, v1.z * k };
 	}
-
 	vec3 Vector_Divide(vec3& v1,float k) {
 		return { v1.x / k, v1.y / k, v1.z / k };
 	}
-
 	float Vector_DotProduct(vec3& v1, vec3& v2) {
 		return { v1.x * v2.x + v1.y * v2.y + v1.z * v2.z };
 	}
-
 	float Vector_Length(vec3& vec) {
 		return sqrtf(Vector_DotProduct(vec, vec));
 	}
-
 	vec3 Vector_Normalise(vec3 &vec) {
 		float l = Vector_Length(vec);
 		return { vec.x / l, vec.y / l, vec.z / l };
 	}
-
 	vec3 Vector_CrossProduct(vec3& v1, vec3& v2) {
 		vec3 v;
 		v.x = v1.y * v2.z - v1.z * v2.y;
@@ -271,7 +314,6 @@ private:
 		v.z = v1.x * v2.y - v1.y * v2.x;
 		return v;
 	}
-
 	float Q_rsqrt(float x) {
 		// result of 1/sqrt(x)
 		long i;
@@ -286,7 +328,6 @@ private:
 		y = y * (threehalves - (x2 * y * y));	// first newtonian iteration
 	//	y = y * (threehalves - (x2 * y * y));	// second newtonian iteration (obsolete)
 	}
-
 	vec3 Vector_IntersectPlane(vec3& plane_p, vec3& plane_n, vec3& lineStart, vec3& lineEnd) {
 		plane_n = Vector_Normalise(plane_n);
 		float plane_d = -Vector_DotProduct(plane_n, plane_p);
@@ -297,7 +338,6 @@ private:
 		vec3 lineToIntersect = Vector_Multiply(lineStartToEnd, t);
 		return Vector_Add(lineStart, lineToIntersect);
 	}
-
 	int Triangle_ClipAgainstPlane(vec3 plane_p, vec3 plane_n, triangle& in_tri, triangle& out_tri1, triangle& out_tri2)
 	{
 		// Make sure plane normal is indeed normal
@@ -398,8 +438,6 @@ private:
 			return 2; // Return two newly formed triangles which form a quad
 		}
 	}
-
-
 
 	CHAR_INFO GetColour(float lum) {
 		short bg_colour, fg_colour;
