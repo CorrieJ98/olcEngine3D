@@ -185,7 +185,14 @@ class Button : InteractableObject {
 public:
 	Button();
 	~Button();
+
+	void PressButton() {
+
+	}
+
+
 protected:
+	bool isLever = false; // false = off -> on forever, true is on/off togglable
 private:
 };
 
@@ -193,16 +200,60 @@ class Door : InteractableObject {
 public:
 	Door();
 	~Door();
+
+	void UnlockDoor() {
+		// take keyID and check for unlock bool
+	}
+
+	void OpenDoor(bool* isUnlocked) {
+		// open door
+	}
+
+protected:
+	bool isUnlocked = true;
+	bool isVertSliding = false; // true = slides upwards on open, false = slides right on open
+	bool isRemote = false; // true = opens with button, false = opens with interact
+private:
+};
+
+class Key : Door {
+public:
+	Key();
+	~Key();
+
+	void LinkDoorToKey(Door* door, Key* key) {
+
+	}
+
 protected:
 private:
 };
 
-class Enemy {
+class Character {
+public:
+	Character();
+	~Character();
+protected:
+	int maxHP;
+	int currentHP;
+	float moveSpeed;
+
+private:
+	Mesh mesh;
+};
+
+class Enemy : Character{
 public:
 	Enemy();
 	~Enemy();
 protected:
 private:
+};
+
+class SpawnPoint {
+public:
+	SpawnPoint();
+	~SpawnPoint();
 };
 
 class olcEngine3D : public olcConsoleGameEngine
@@ -212,12 +263,12 @@ public:
 	{
 		m_sAppName = L"Tankers 3D";
 	}
-	~olcEngine3D();
 private:
 	// ::::: VARIABLE INITIALISATION :::::
 	mesh testMesh;
 	matrix4x4 projection_matrix;
 	camera eye;
+	vec3 lookdir;
 	float camZOffset = 6.0f;
 	const float PI = 3.141592653;
 	string objects[4] = { "axis.obj","mountains.obj","spaceship.obj","teapot.obj" };
@@ -554,43 +605,35 @@ public:
 
 	bool OnUserUpdate(float elapsedTime) override
 	{
-		// Initialise left hand rule
 		vec3 up = { 0.0f,1.0f,0.0f };
-		vec3 fwd = { 0.0f,0.0f,1.0f };
-		vec3 right = { 1.0f, 0.0f,0.0f };
-
-		// Rotation matricies to ensure Up and Right are constantly on correct axis alignment
-		matrix4x4 ninetyY = Matrix_RotAxisY(0.5f * PI); // 90 degree rotation
-		matrix4x4 ninetyX = Matrix_RotAxisX(1.5f * PI);	// 270 degree rotation
-		vec3 rmod = Matrix_MultiplyVector(ninetyY, fwd);
-		vec3 umod = Matrix_MultiplyVector(ninetyX, fwd);
-		vec3 vRight = Vector_Multiply(rmod, 8.0f * elapsedTime);
-		vec3 vUp = Vector_Multiply(umod, 8.0f * elapsedTime);
-		vec3 vForward = Vector_Multiply(fwd, 8.0f * elapsedTime);
-
+		vec3 target = { 0.0f,0.0f,1.0f };
+		matrix4x4 ninety = Matrix_RotAxisY(0.5f * PI);
+		vec3 s = Matrix_MultiplyVector(ninety, lookdir);
+		vec3 vForward = Vector_Multiply(lookdir, 8.0f * elapsedTime);
+		vec3 vShoulderRail = Vector_Multiply(s, 8.0f * elapsedTime);
 		matrix4x4 y = Matrix_RotAxisY(eye.yaw);
 		matrix4x4 p = Matrix_RotAxisX(eye.pitch);
-		vec3 anglesin = Matrix_MultiplyVector(y,vRight);
-		vec3 anglecos = Matrix_MultiplyVector(p, vRight);
-		matrix4x4 camMatrixRot = Matrix_MultiplyMatrix(y,p);
-		fwd = Matrix_MultiplyVector(camMatrixRot, fwd);
-		fwd = Vector_Add(eye.pos, fwd);		
-		matrix4x4 camMatrix = Matrix_PointAt(eye.pos, fwd, up);
+		vec3 anglesin = Matrix_MultiplyVector(y, vShoulderRail);
+		vec3 anglecos = Matrix_MultiplyVector(p, vShoulderRail);
+		matrix4x4 camMatrixRot = Matrix_MultiplyMatrix(y, p);
+		lookdir = Matrix_MultiplyVector(camMatrixRot, target);
+		target = Vector_Add(eye.pos, lookdir);
+		matrix4x4 camMatrix = Matrix_PointAt(eye.pos, target, up);
 		matrix4x4 matView = Matrix_QuickInvert(camMatrix);
 
 
 		// ::::: KEYBINDINGS :::::
 		if (GetKey(L'E').bHeld)	// Up
 			eye.pos.y += 8.0f * elapsedTime;
-		
+
 		if (GetKey(L'Q').bHeld)	// Down
 			eye.pos.y -= 8.0f * elapsedTime;
 
 		if (GetKey(L'A').bHeld)	// Left
-			eye.pos = Vector_Subtract(eye.pos, vRight);
+			eye.pos = Vector_Subtract(eye.pos, vShoulderRail);
 
 		if (GetKey(L'D').bHeld)	// Right
-			eye.pos = Vector_Add(eye.pos, vRight);
+			eye.pos = Vector_Add(eye.pos, vShoulderRail);
 
 		if (GetKey(L'W').bHeld)	// Forward
 			eye.pos = Vector_Add(eye.pos, vForward);
@@ -614,12 +657,13 @@ public:
 		// Clear screen
 		Fill(0, 0, ScreenWidth(), ScreenHeight(), PIXEL_SOLID, FG_BLACK);
 
+
 		vector<triangle> vecTrianglesToRaster;
 
 		// ::::: ROTATION MATRIX :::::
 		matrix4x4 matRotZ, matRotX;
 		matRotZ = Matrix_RotAxisZ(DegToRad(eye.pitch));
-		matRotX = Matrix_RotAxisX(DegToRad(eye.pitch));
+		matRotX = Matrix_RotAxisX(DegToRad(eye.yaw));
 
 		matrix4x4 matTranslation;
 		matTranslation = Matrix_MakeTranslate(0.0f, 0.0f, camZOffset);
