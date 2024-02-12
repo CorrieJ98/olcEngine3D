@@ -86,6 +86,13 @@ public:
 	float yaw = 0.0f;
 	float offset = 6.0f;
 
+	void Yaw(float angle) {
+
+	}
+	void Pitch(float angle) {
+
+	}
+
 	~Camera();
 protected:
 	// Left hand rule
