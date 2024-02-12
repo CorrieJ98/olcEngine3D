@@ -31,9 +31,7 @@ struct camera {
 	float ycos = cosf(yaw);
 	float ysin = sinf(yaw);
 };
-
-// to be replaced with 'Class Mesh'
-struct mesh{
+struct mesh {
 
 	vector<triangle> tris;
 
@@ -79,11 +77,32 @@ struct mesh{
 	}
 };
 
+static class Camera {
+public:
+	Camera();
+
+	vec3 pos;
+	float pitch = 0.0f;
+	float yaw = 0.0f;
+	float offset = 6.0f;
+
+	~Camera();
+protected:
+	// Left hand rule
+	vec3 fwd;
+	vec3 up;
+	vec3 right;
+private:
+};
+
 class Mesh
 {
 public:
 	Mesh();
 	~Mesh();
+
+protected:
+	std::string displayName = "unnamed";
 
 private:
 	vector<triangle> tris;
@@ -130,36 +149,75 @@ private:
 	}
 };
 
-Mesh::Mesh()
-{
-}
+class GameLevel {
+public:
+	GameLevel();
+	~GameLevel();
+protected:
+private:
 
-Mesh::~Mesh()
-{
-} 
+};
 
+class InteractableObject {
+public:
+	InteractableObject();
+	~InteractableObject();
+protected:
+private:
+};
+
+class EquippableObject {
+public:
+	EquippableObject();
+	~EquippableObject();
+protected:
+private:
+};
+
+class Button : InteractableObject {
+public:
+	Button();
+	~Button();
+protected:
+private:
+};
+
+class Door : InteractableObject {
+public:
+	Door();
+	~Door();
+protected:
+private:
+};
+
+class Enemy {
+public:
+	Enemy();
+	~Enemy();
+protected:
+private:
+};
 
 class olcEngine3D : public olcConsoleGameEngine
 {
 public:
 	olcEngine3D() 
 	{
-		m_sAppName = L"3D Demo";
+		m_sAppName = L"Tankers 3D";
 	}
+	~olcEngine3D();
 private:
 	// ::::: VARIABLE INITIALISATION :::::
 	mesh testMesh;
 	matrix4x4 projection_matrix;
 	camera eye;
 	float camZOffset = 6.0f;
-	vec3 lookdir;
 	const float PI = 3.141592653;
 	string objects[4] = { "axis.obj","mountains.obj","spaceship.obj","teapot.obj" };
 
 	float RadToDeg(float rad) {
 		return rad *= 180 / PI;
 	}
-
 	float DegToRad(float deg) {
 		return deg *= PI / 180;
 	}
@@ -315,7 +373,7 @@ private:
 		return v;
 	}
 	float Q_rsqrt(float x) {
-		// result of 1/sqrt(x)
+		// result of 1/sqrt(x) (inverse square root)
 		long i;
 		float x2, y;
 		const float threehalves = 1.5f;
@@ -328,6 +386,8 @@ private:
 		y = y * (threehalves - (x2 * y * y));	// first newtonian iteration
 	//	y = y * (threehalves - (x2 * y * y));	// second newtonian iteration (obsolete)
 	}
+
+
 	vec3 Vector_IntersectPlane(vec3& plane_p, vec3& plane_n, vec3& lineStart, vec3& lineEnd) {
 		plane_n = Vector_Normalise(plane_n);
 		float plane_d = -Vector_DotProduct(plane_n, plane_p);
@@ -486,28 +546,29 @@ public:
 	}
 
 	bool OnUserUpdate(float elapsedTime) override
-	{/*
-
-		vec3 vForward = Vector_Multiply(lookdir, 8.0f * elapsedTime); */
-
-		// Camera Matrix
-
-		
-
+	{
+		// Initialise left hand rule
 		vec3 up = { 0.0f,1.0f,0.0f };
-		vec3 target = { 0.0f,0.0f,1.0f };
-		matrix4x4 ninety = Matrix_RotAxisY(0.5f * PI);
-		vec3 s = Matrix_MultiplyVector(ninety, lookdir);
-		vec3 vForward = Vector_Multiply(lookdir, 8.0f * elapsedTime);
-		vec3 vShoulderRail = Vector_Multiply(s, 8.0f * elapsedTime);
+		vec3 fwd = { 0.0f,0.0f,1.0f };
+		vec3 right = { 1.0f, 0.0f,0.0f };
+
+		// Rotation matricies to ensure Up and Right are constantly on correct axis alignment
+		matrix4x4 ninetyY = Matrix_RotAxisY(0.5f * PI); // 90 degree rotation
+		matrix4x4 ninetyX = Matrix_RotAxisX(1.5f * PI);	// 270 degree rotation
+		vec3 rmod = Matrix_MultiplyVector(ninetyY, fwd);
+		vec3 umod = Matrix_MultiplyVector(ninetyX, fwd);
+		vec3 vRight = Vector_Multiply(rmod, 8.0f * elapsedTime);
+		vec3 vUp = Vector_Multiply(umod, 8.0f * elapsedTime);
+		vec3 vForward = Vector_Multiply(fwd, 8.0f * elapsedTime);
+
 		matrix4x4 y = Matrix_RotAxisY(eye.yaw);
 		matrix4x4 p = Matrix_RotAxisX(eye.pitch);
-		vec3 anglesin = Matrix_MultiplyVector(y,vShoulderRail);
-		vec3 anglecos = Matrix_MultiplyVector(p, vShoulderRail);
+		vec3 anglesin = Matrix_MultiplyVector(y,vRight);
+		vec3 anglecos = Matrix_MultiplyVector(p, vRight);
 		matrix4x4 camMatrixRot = Matrix_MultiplyMatrix(y,p);
-		lookdir = Matrix_MultiplyVector(camMatrixRot, target);
-		target = Vector_Add(eye.pos, lookdir);		
-		matrix4x4 camMatrix = Matrix_PointAt(eye.pos, target, up);
+		fwd = Matrix_MultiplyVector(camMatrixRot, fwd);
+		fwd = Vector_Add(eye.pos, fwd);		
+		matrix4x4 camMatrix = Matrix_PointAt(eye.pos, fwd, up);
 		matrix4x4 matView = Matrix_QuickInvert(camMatrix);
 
 
@@ -519,10 +580,10 @@ public:
 			eye.pos.y -= 8.0f * elapsedTime;
 
 		if (GetKey(L'A').bHeld)	// Left
-			eye.pos = Vector_Subtract(eye.pos, vShoulderRail);
+			eye.pos = Vector_Subtract(eye.pos, vRight);
 
 		if (GetKey(L'D').bHeld)	// Right
-			eye.pos = Vector_Add(eye.pos, vShoulderRail);
+			eye.pos = Vector_Add(eye.pos, vRight);
 
 		if (GetKey(L'W').bHeld)	// Forward
 			eye.pos = Vector_Add(eye.pos, vForward);
@@ -722,8 +783,8 @@ public:
 
 int main()
 {
-	olcEngine3D demo;
-	if (demo.ConstructConsole(256, 240, 4, 4))
-		demo.Start();
+	olcEngine3D tankers;
+	if (tankers.ConstructConsole(256, 240, 4, 4))
+		tankers.Start();
     return 0;
 }
