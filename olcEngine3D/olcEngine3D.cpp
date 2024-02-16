@@ -254,6 +254,8 @@ class SpawnPoint {
 public:
 	SpawnPoint();
 	~SpawnPoint();
+protected:
+private:
 };
 
 class olcEngine3D : public olcConsoleGameEngine
@@ -267,6 +269,7 @@ private:
 	// ::::: VARIABLE INITIALISATION :::::
 	mesh testMesh;
 	matrix4x4 projection_matrix;
+	matrix4x4 identity_matrix;
 	camera eye;
 	vec3 lookdir;
 	float camZOffset = 6.0f;
@@ -557,38 +560,37 @@ private:
 		}
 	}
 
-	CHAR_INFO GetColour(float lum) {
-		short bg_colour, fg_colour;
+	CHAR_INFO GetColour(float lum)
+	{
+		short bg_col, fg_col;
 		wchar_t sym;
 		int pixel_bw = (int)(13.0f * lum);
+		switch (pixel_bw)
+		{
+		case 0: bg_col = BG_BLACK; fg_col = FG_BLACK; sym = PIXEL_SOLID; break;
 
-		switch (pixel_bw) {
-			case 0: bg_colour = BG_BLACK; fg_colour = FG_BLACK; sym = PIXEL_SOLID; break;
+		case 1: bg_col = BG_BLACK; fg_col = FG_DARK_GREY; sym = PIXEL_QUARTER; break;
+		case 2: bg_col = BG_BLACK; fg_col = FG_DARK_GREY; sym = PIXEL_HALF; break;
+		case 3: bg_col = BG_BLACK; fg_col = FG_DARK_GREY; sym = PIXEL_THREEQUARTERS; break;
+		case 4: bg_col = BG_BLACK; fg_col = FG_DARK_GREY; sym = PIXEL_SOLID; break;
 
-			case 1: bg_colour = BG_BLACK; fg_colour = FG_DARK_GREY; sym = PIXEL_QUARTER; break;
-			case 2: bg_colour = BG_BLACK; fg_colour = FG_DARK_GREY; sym = PIXEL_HALF; break;
-			case 3: bg_colour = BG_BLACK; fg_colour = FG_DARK_GREY; sym = PIXEL_THREEQUARTERS; break;
-			case 4: bg_colour = BG_BLACK; fg_colour = FG_DARK_GREY; sym = PIXEL_SOLID; break;
+		case 5: bg_col = BG_DARK_GREY; fg_col = FG_GREY; sym = PIXEL_QUARTER; break;
+		case 6: bg_col = BG_DARK_GREY; fg_col = FG_GREY; sym = PIXEL_HALF; break;
+		case 7: bg_col = BG_DARK_GREY; fg_col = FG_GREY; sym = PIXEL_THREEQUARTERS; break;
+		case 8: bg_col = BG_DARK_GREY; fg_col = FG_GREY; sym = PIXEL_SOLID; break;
 
-			case 5: bg_colour = BG_DARK_GREY; fg_colour = FG_GREY; sym = PIXEL_QUARTER; break;
-			case 6: bg_colour = BG_DARK_GREY; fg_colour = FG_GREY; sym = PIXEL_HALF; break;
-			case 7: bg_colour = BG_DARK_GREY; fg_colour = FG_GREY; sym = PIXEL_THREEQUARTERS; break;
-			case 8: bg_colour = BG_DARK_GREY; fg_colour = FG_GREY; sym = PIXEL_SOLID; break;
-
-			case 9: bg_colour = BG_GREY; fg_colour = FG_WHITE; sym = PIXEL_QUARTER; break;
-			case 10: bg_colour = BG_GREY; fg_colour = FG_WHITE; sym = PIXEL_HALF; break;
-			case 11: bg_colour = BG_GREY; fg_colour = FG_WHITE; sym = PIXEL_THREEQUARTERS; break;
-			case 12: bg_colour = BG_GREY; fg_colour = FG_WHITE; sym = PIXEL_SOLID; break;
-			default:
-				bg_colour = BG_BLACK; fg_colour = FG_BLACK; sym = PIXEL_SOLID;
-
+		case 9:  bg_col = BG_GREY; fg_col = FG_WHITE; sym = PIXEL_QUARTER; break;
+		case 10: bg_col = BG_GREY; fg_col = FG_WHITE; sym = PIXEL_HALF; break;
+		case 11: bg_col = BG_GREY; fg_col = FG_WHITE; sym = PIXEL_THREEQUARTERS; break;
+		case 12: bg_col = BG_GREY; fg_col = FG_WHITE; sym = PIXEL_SOLID; break;
+		default:
+			bg_col = BG_BLACK; fg_col = FG_BLACK; sym = PIXEL_SOLID;
 		}
 
-		CHAR_INFO col;
-		col.Attributes = bg_colour | fg_colour;
-		col.Char.UnicodeChar = sym;
-
-		return col;
+		CHAR_INFO c;
+		c.Attributes = bg_col | fg_col;
+		c.Char.UnicodeChar = sym;
+		return c;
 	}
 
 
@@ -596,7 +598,7 @@ public:
 	bool OnUserCreate() override
 	{
 		// .obj file import
-		testMesh.LoadFromObjectFile(objects[0]);
+		testMesh.LoadFromObjectFile(objects[1]);
 
 		// Projection Matrix
 		projection_matrix = Matrix_MakeProjection(90.0f, (float)ScreenHeight() / (float)ScreenWidth(), 0.01f, 1000.0f);
@@ -607,19 +609,39 @@ public:
 	{
 		vec3 up = { 0.0f,1.0f,0.0f };
 		vec3 target = { 0.0f,0.0f,1.0f };
-		matrix4x4 ninety = Matrix_RotAxisY(0.5f * PI);
-		vec3 s = Matrix_MultiplyVector(ninety, lookdir);
+
+		matrix4x4 ninetyY = Matrix_RotAxisY(0.5f * PI);
+		matrix4x4 ninetyX = Matrix_RotAxisX(1.5f * PI);
+		vec3 r = Matrix_MultiplyVector(ninetyY, lookdir);
+		vec3 u = Matrix_MultiplyVector(ninetyX, lookdir);
 		vec3 vForward = Vector_Multiply(lookdir, 8.0f * elapsedTime);
-		vec3 vShoulderRail = Vector_Multiply(s, 8.0f * elapsedTime);
+		vec3 vShoulderRail = Vector_Multiply(r, 8.0f * elapsedTime);
+		vec3 vBackRail = Vector_Multiply(u, 8.0f * elapsedTime);
+
 		matrix4x4 y = Matrix_RotAxisY(eye.yaw);
 		matrix4x4 p = Matrix_RotAxisX(eye.pitch);
-		vec3 anglesin = Matrix_MultiplyVector(y, vShoulderRail);
-		vec3 anglecos = Matrix_MultiplyVector(p, vShoulderRail);
-		matrix4x4 camMatrixRot = Matrix_MultiplyMatrix(y, p);
+
+		matrix4x4 camMatrixRot = Matrix_RotAxisY(eye.yaw);
 		lookdir = Matrix_MultiplyVector(camMatrixRot, target);
 		target = Vector_Add(eye.pos, lookdir);
 		matrix4x4 camMatrix = Matrix_PointAt(eye.pos, target, up);
 		matrix4x4 matView = Matrix_QuickInvert(camMatrix);
+
+		// ::::: ROTATION MATRIX :::::
+		matrix4x4 matRotY, matRotX;
+		matRotY = Matrix_RotAxisZ(eye.yaw);
+		matRotX = Matrix_RotAxisX(eye.pitch);
+
+		matrix4x4 matTranslation;
+		matTranslation = Matrix_MakeTranslate(0.0f, 0.0f, camZOffset);
+
+		matrix4x4 matWorld,
+		identity_matrix = Matrix_MakeIdentity();
+		matWorld = Matrix_MakeIdentity();
+		matWorld = Matrix_MultiplyMatrix(matWorld, matRotX);
+		matWorld = Matrix_MultiplyMatrix(identity_matrix,matRotY);
+		matWorld = Matrix_MultiplyMatrix(matWorld, matTranslation);
+
 
 
 		// ::::: KEYBINDINGS :::::
@@ -660,29 +682,17 @@ public:
 
 		vector<triangle> vecTrianglesToRaster;
 
-		// ::::: ROTATION MATRIX :::::
-		matrix4x4 matRotZ, matRotX;
-		matRotZ = Matrix_RotAxisZ(DegToRad(eye.pitch));
-		matRotX = Matrix_RotAxisX(DegToRad(eye.yaw));
 
-		matrix4x4 matTranslation;
-		matTranslation = Matrix_MakeTranslate(0.0f, 0.0f, camZOffset);
-
-		matrix4x4 matWorld;
-		matWorld = Matrix_MakeIdentity();
-		matWorld = Matrix_MultiplyMatrix(matRotZ, matRotX);
-		matWorld = Matrix_MultiplyMatrix(matWorld, matTranslation);
-
-
-		// Draw triangles
+		// Draw Triangles
 		for (auto tri : testMesh.tris)
 		{
 			triangle triProjected, triTransformed, triViewed;
 
+			// World Matrix Transform
 			triTransformed.p[0] = Matrix_MultiplyVector(matWorld, tri.p[0]);
 			triTransformed.p[1] = Matrix_MultiplyVector(matWorld, tri.p[1]);
 			triTransformed.p[2] = Matrix_MultiplyVector(matWorld, tri.p[2]);
-			
+
 			// Calculate triangle Normal
 			vec3 normal, line1, line2;
 
@@ -690,41 +700,45 @@ public:
 			line1 = Vector_Subtract(triTransformed.p[1], triTransformed.p[0]);
 			line2 = Vector_Subtract(triTransformed.p[2], triTransformed.p[0]);
 
-			// Take Cross Product of line to get normal to tri surface
+			// Take cross product of lines to get normal to triangle surface
 			normal = Vector_CrossProduct(line1, line2);
 
-			// Normalise normals!
+			// You normally need to normalise a normal!
 			normal = Vector_Normalise(normal);
 
-			// Raycast from tri to cam
-			vec3 camRaycast = Vector_Subtract(triTransformed.p[0], eye.pos);
+			// Get Ray from triangle to camera
+			vec3 vCameraRay = Vector_Subtract(triTransformed.p[0], eye.pos);
 
-
-			// ::::: CULLING :::::
-			if (Vector_DotProduct(normal,camRaycast) < 0.0f) {
-
+			// If ray is aligned with normal, then triangle is visible
+			if (Vector_DotProduct(normal, vCameraRay) < 0.0f)
+			{
 				// Illumination
-				vec3 light_direction = { 0.0f, 1.0f,-1.0f};
+				vec3 light_direction = { 1.0f, 1.5f, 2.0f };
 				light_direction = Vector_Normalise(light_direction);
 
-				// How aligned are the light direction and triangle normal?
-				float dp = max(0.01f, Vector_DotProduct(light_direction, normal));
+				// How "aligned" are light direction and triangle surface normal?
+				float dp = max(0.1f, Vector_DotProduct(light_direction, normal));
 
-				// Get colour as required using dot product
-				CHAR_INFO col = GetColour(dp);
-				triTransformed.col = col.Attributes;
-				triTransformed.sym = col.Char.UnicodeChar;
+				// Choose console colours as required (much easier with RGB)
+				CHAR_INFO c = GetColour(dp);
+				triTransformed.col = c.Attributes;
+				triTransformed.sym = c.Char.UnicodeChar;
 
-				// Convert world space into view space
+				// Convert World Space --> View Space
 				triViewed.p[0] = Matrix_MultiplyVector(matView, triTransformed.p[0]);
 				triViewed.p[1] = Matrix_MultiplyVector(matView, triTransformed.p[1]);
 				triViewed.p[2] = Matrix_MultiplyVector(matView, triTransformed.p[2]);
+				triViewed.sym = triTransformed.sym;
+				triViewed.col = triTransformed.col;
 
-				// Clip viewed triangle against near plane. Could form 2 additional tris
+				// Clip Viewed Triangle against near plane, this could form two additional
+				// additional triangles. 
 				int nClippedTriangles = 0;
 				triangle clipped[2];
-				nClippedTriangles = Triangle_ClipAgainstPlane({ 0.0f,0.0f,0.1f }, { 0.0f,0.0f,1.0f }, triViewed, clipped[0], clipped[1]);
+				nClippedTriangles = Triangle_ClipAgainstPlane({ 0.0f, 0.0f, 0.1f }, { 0.0f, 0.0f, 1.0f }, triViewed, clipped[0], clipped[1]);
 
+				// We may end up with multiple triangles form the clip, so project as
+				// required
 				for (int n = 0; n < nClippedTriangles; n++)
 				{
 					// Project triangles from 3D --> 2D
