@@ -23,13 +23,7 @@ struct matrix4x4 {
 };
 struct camera {
 	vec3 pos;
-	float pitch, yaw;
-
-	// Im certain this is a terrible idea
-	float pcos = cosf(pitch);
-	float psin = sinf(pitch);
-	float ycos = cosf(yaw);
-	float ysin = sinf(yaw);
+	float pitch, yaw, sensitivity;
 };
 struct mesh {
 
@@ -77,14 +71,14 @@ struct mesh {
 	}
 };
 
-static class Camera {
+class Camera {
 public:
 	Camera();
 
 	vec3 pos;
-	float pitch = 0.0f;
-	float yaw = 0.0f;
-	float offset = 6.0f;
+	float pitch;
+	float yaw;
+	vec3 lookAt;
 
 	void Yaw(float angle) {
 
@@ -93,9 +87,10 @@ public:
 
 	}
 
+
+
 	~Camera();
 protected:
-	// Left hand rule
 	vec3 fwd;
 	vec3 up;
 	vec3 right;
@@ -265,12 +260,15 @@ public:
 	{
 		m_sAppName = L"Tankers 3D";
 	}
+
+
 private:
 	// ::::: VARIABLE INITIALISATION :::::
 	mesh testMesh;
 	matrix4x4 projection_matrix;
 	matrix4x4 identity_matrix;
 	camera eye;
+
 	vec3 lookdir;
 	float camZOffset = 6.0f;
 	const float PI = 3.141592653;
@@ -433,21 +431,6 @@ private:
 		v.z = v1.x * v2.y - v1.y * v2.x;
 		return v;
 	}
-	float Q_rsqrt(float x) {
-		// result of 1/sqrt(x) (inverse square root)
-		long i;
-		float x2, y;
-		const float threehalves = 1.5f;
-
-		x2 = y * 0.5f;
-		y = x;
-		i = *(long*)&y;
-		i = 0x05f3759df - (i >> 1);
-		y = *(float*)&i;
-		y = y * (threehalves - (x2 * y * y));	// first newtonian iteration
-	//	y = y * (threehalves - (x2 * y * y));	// second newtonian iteration (obsolete)
-	}
-
 
 	vec3 Vector_IntersectPlane(vec3& plane_p, vec3& plane_n, vec3& lineStart, vec3& lineEnd) {
 		plane_n = Vector_Normalise(plane_n);
@@ -593,6 +576,21 @@ private:
 		return c;
 	}
 
+	float mouseX, mouseY;
+	void CursorManager(float mXin, float mYin, float mXout, float mYout, float sens) {
+
+		// GetMouse position values, subtract from the centre point of screen
+
+		vec3 halfres = {
+			// take int x and bitshift 1 place to the right for x/2
+			ScreenWidth() >> 1,
+			ScreenHeight() >> 1,
+		};
+
+		mXout = mXin - halfres.x * (sens * 0.01f);
+		mYout = mYin - halfres.y * (sens * 0.01f);
+	};
+
 
 public:
 	bool OnUserCreate() override
@@ -629,22 +627,22 @@ public:
 
 		// ::::: ROTATION MATRIX :::::
 		matrix4x4 matRotY, matRotX;
-		matRotY = Matrix_RotAxisZ(eye.yaw);
+		matRotY = Matrix_RotAxisY(eye.yaw);
 		matRotX = Matrix_RotAxisX(eye.pitch);
 
 		matrix4x4 matTranslation;
 		matTranslation = Matrix_MakeTranslate(0.0f, 0.0f, camZOffset);
 
-		matrix4x4 matWorld,
-		identity_matrix = Matrix_MakeIdentity();
+		matrix4x4 matWorld;
 		matWorld = Matrix_MakeIdentity();
-		matWorld = Matrix_MultiplyMatrix(matWorld, matRotX);
-		matWorld = Matrix_MultiplyMatrix(identity_matrix,matRotY);
+		matWorld = Matrix_MultiplyMatrix(matRotY, matRotX);
 		matWorld = Matrix_MultiplyMatrix(matWorld, matTranslation);
 
 
 
 		// ::::: KEYBINDINGS :::::
+
+		// Movement
 		if (GetKey(L'E').bHeld)	// Up
 			eye.pos.y += 8.0f * elapsedTime;
 
@@ -663,6 +661,8 @@ public:
 		if (GetKey(L'S').bHeld) // Back
 			eye.pos = Vector_Subtract(eye.pos, vForward);
 
+
+		// Camera Keyboard
 		if (GetKey(VK_LEFT).bHeld)	// Yaw Left
 			eye.yaw -= 2.0f * elapsedTime;
 
@@ -674,6 +674,16 @@ public:
 
 		if (GetKey(VK_DOWN).bHeld)	// Pitch Down
 			eye.pitch += 2.0f * elapsedTime;
+
+		// Camera Mouse
+		CursorManager(GetMouseX(), GetMouseY(), mouseX, mouseY, 1.0f);
+		if (mouseX != (ScreenWidth() >> 1)) {
+			eye.yaw += mouseX;
+		}
+
+		if (mouseY != (ScreenHeight() >> 1)) {
+			eye.pitch += mouseY;
+		};
 
 
 		// Clear screen
