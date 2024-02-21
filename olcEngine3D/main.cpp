@@ -1,4 +1,7 @@
 #include "olcConsoleGameEngine.h"
+#include "matrix.cpp"
+#include "matrix.h"
+#include "vector.cpp"
 #include <fstream>
 #include <strstream>
 #include <algorithm>
@@ -6,23 +9,8 @@
 
 using namespace std;
 
-struct vec3 {
-	float x = 0.0f;
-	float y = 0.0f;
-	float z = 0.0f;
-	float w = 1.0f;
-};
-struct triangle {
-	vec3 p[3];
-
-	wchar_t sym;
-	short col;
-};
-struct matrix4x4 {
-	float m[4][4] = { 0 };
-};
 struct camera {
-	vec3 pos;
+	v3f pos;
 	float pitch, yaw, sensitivity;
 };
 struct mesh {
@@ -36,7 +24,7 @@ struct mesh {
 			return false;
 
 		// Local cache of verts
-		vector<vec3> verts;
+		vector<v3f> verts;
 
 		// loop through .obj file for relevant data
 		while (!file.eof())
@@ -52,7 +40,7 @@ struct mesh {
 			// extract VERT values from obj then add to local cache
 			if (line[0] == 'v')
 			{
-				vec3 v;
+				v3f v;
 				s >> junk >> v.x >> v.y >> v.z;
 				verts.push_back(v);
 			}
@@ -75,10 +63,10 @@ class Camera {
 public:
 	Camera();
 
-	vec3 pos;
+	v3f pos;
 	float pitch;
 	float yaw;
-	vec3 lookAt;
+	v3f lookAt;
 
 	void Yaw(float angle) {
 
@@ -91,9 +79,9 @@ public:
 
 	~Camera();
 protected:
-	vec3 fwd;
-	vec3 up;
-	vec3 right;
+	v3f fwd;
+	v3f up;
+	v3f right;
 private:
 };
 
@@ -116,7 +104,7 @@ private:
 			return false;
 
 		// Local cache of verts
-		vector<vec3> verts;
+		vector<v3f> verts;
 
 		// loop through .obj file for relevant data
 		while (!file.eof())
@@ -132,7 +120,7 @@ private:
 			// extract VERT values from obj then add to local cache
 			if (line[0] == 'v')
 			{
-				vec3 v;
+				v3f v;
 				s >> junk >> v.x >> v.y >> v.z;
 				verts.push_back(v);
 			}
@@ -269,7 +257,7 @@ private:
 	matrix4x4 identity_matrix;
 	camera eye;
 
-	vec3 lookdir;
+	v3f lookdir;
 	float camZOffset = 6.0f;
 	const float PI = 3.141592653;
 	string objects[4] = { "axis.obj","mountains.obj","spaceship.obj","teapot.obj" };
@@ -290,18 +278,18 @@ private:
 		id.m[3][3] = 1.0f;
 		return id;
 	}
-	matrix4x4 Matrix_PointAt(vec3 &pos, vec3 &target, vec3 &up){
+	matrix4x4 Matrix_PointAt(v3f &pos, v3f &target, v3f &up){
 		// Calculate new forward (x) direction
-		vec3 newFwd = Vector_Subtract(target, pos);
+		v3f newFwd = Vector_Subtract(target, pos);
 		newFwd = Vector_Normalise(newFwd);
 
 		// Calculate new up (y) direction
-		vec3 a = Vector_Multiply(newFwd, Vector_DotProduct(up, newFwd));
-		vec3 newUp = Vector_Subtract(up, a);
+		v3f a = Vector_Multiply(newFwd, Vector_DotProduct(up, newFwd));
+		v3f newUp = Vector_Subtract(up, a);
 		newUp = Vector_Normalise(newUp);
 		
 		// Calculate new right(z) direction
-		vec3 newRight = Vector_CrossProduct(newUp, newFwd);
+		v3f newRight = Vector_CrossProduct(newUp, newFwd);
 
 		// Construct Dimension and Translation Matrix
 		matrix4x4 m;
@@ -394,70 +382,70 @@ private:
 				mout.m[r][c] = m1.m[r][0] * m2.m[0][c] + m1.m[r][1] * m2.m[1][c] + m1.m[r][2] * m2.m[2][c] + m1.m[r][3] * m2.m[3][c];
 		return mout;
 	}
-	vec3 Matrix_MultiplyVector(matrix4x4& m, vec3& vin) {
-		vec3 vout;
+	v3f Matrix_MultiplyVector(matrix4x4& m, v3f& vin) {
+		v3f vout;
 		vout.x = vin.x * m.m[0][0] + vin.y * m.m[1][0] + vin.z * m.m[2][0] + vin.w * m.m[3][0];
 		vout.y = vin.x * m.m[0][1] + vin.y * m.m[1][1] + vin.z * m.m[2][1] + vin.w * m.m[3][1];
 		vout.z = vin.x * m.m[0][2] + vin.y * m.m[1][2] + vin.z * m.m[2][2] + vin.w * m.m[3][2];
 		vout.w = vin.x * m.m[0][3] + vin.y * m.m[1][3] + vin.z * m.m[2][3] + vin.w * m.m[3][3];
 		return vout;
 	}
-	vec3 Vector_Add(vec3& v1, vec3& v2) {
+	v3f Vector_Add(v3f& v1, v3f& v2) {
 		return { v1.x + v2.x, v1.y + v2.y, v1.z + v2.z };
 	}
-	vec3 Vector_Subtract(vec3& v1, vec3& v2) {
+	v3f Vector_Subtract(v3f& v1, v3f& v2) {
 		return { v1.x - v2.x, v1.y - v2.y, v1.z - v2.z };
 	}
-	vec3 Vector_Multiply(vec3& v1, float k) {
+	v3f Vector_Multiply(v3f& v1, float k) {
 		return { v1.x * k, v1.y * k, v1.z * k };
 	}
-	vec3 Vector_Divide(vec3& v1,float k) {
+	v3f Vector_Divide(v3f& v1,float k) {
 		return { v1.x / k, v1.y / k, v1.z / k };
 	}
-	float Vector_DotProduct(vec3& v1, vec3& v2) {
+	float Vector_DotProduct(v3f& v1, v3f& v2) {
 		return { v1.x * v2.x + v1.y * v2.y + v1.z * v2.z };
 	}
-	float Vector_Length(vec3& vec) {
+	float Vector_Length(v3f& vec) {
 		return sqrtf(Vector_DotProduct(vec, vec));
 	}
-	vec3 Vector_Normalise(vec3 &vec) {
+	v3f Vector_Normalise(v3f &vec) {
 		float l = Vector_Length(vec);
 		return { vec.x / l, vec.y / l, vec.z / l };
 	}
-	vec3 Vector_CrossProduct(vec3& v1, vec3& v2) {
-		vec3 v;
+	v3f Vector_CrossProduct(v3f& v1, v3f& v2) {
+		v3f v;
 		v.x = v1.y * v2.z - v1.z * v2.y;
 		v.y = v1.z * v2.x - v1.x * v2.z;
 		v.z = v1.x * v2.y - v1.y * v2.x;
 		return v;
 	}
 
-	vec3 Vector_IntersectPlane(vec3& plane_p, vec3& plane_n, vec3& lineStart, vec3& lineEnd) {
+	v3f Vector_IntersectPlane(v3f& plane_p, v3f& plane_n, v3f& lineStart, v3f& lineEnd) {
 		plane_n = Vector_Normalise(plane_n);
 		float plane_d = -Vector_DotProduct(plane_n, plane_p);
 		float ad = Vector_DotProduct(lineStart, plane_n);
 		float bd = Vector_DotProduct(lineEnd, plane_n);
 		float t = (-plane_d - ad) / (bd - ad);
-		vec3 lineStartToEnd = Vector_Subtract(lineEnd, lineStart);
-		vec3 lineToIntersect = Vector_Multiply(lineStartToEnd, t);
+		v3f lineStartToEnd = Vector_Subtract(lineEnd, lineStart);
+		v3f lineToIntersect = Vector_Multiply(lineStartToEnd, t);
 		return Vector_Add(lineStart, lineToIntersect);
 	}
-	int Triangle_ClipAgainstPlane(vec3 plane_p, vec3 plane_n, triangle& in_tri, triangle& out_tri1, triangle& out_tri2)
+	int Triangle_ClipAgainstPlane(v3f plane_p, v3f plane_n, triangle& in_tri, triangle& out_tri1, triangle& out_tri2)
 	{
 		// Make sure plane normal is indeed normal
 		plane_n = Vector_Normalise(plane_n);
 
 		// Return signed shortest distance from point to plane, plane normal must be normalised
-		auto dist = [&](vec3& p)
+		auto dist = [&](v3f& p)
 			{
-				vec3 n = Vector_Normalise(p);
+				v3f n = Vector_Normalise(p);
 				return (plane_n.x * p.x + plane_n.y * p.y + plane_n.z * p.z - Vector_DotProduct(plane_n, plane_p));
 			};
 
 		// Create two temporary storage arrays to classify points either side of plane
 		// If distance sign is positive, point lies on "inside" of plane
-		vec3* inside_points[3];  int nInsidePointCount = 0;
-		vec3* outside_points[3]; int nOutsidePointCount = 0;
+		v3f* inside_points[3];  int nInsidePointCount = 0;
+		v3f* outside_points[3]; int nOutsidePointCount = 0;
 
 		// Get signed distance of each point in triangle to plane
 		float d0 = dist(in_tri.p[0]);
@@ -581,7 +569,7 @@ private:
 
 		// GetMouse position values, subtract from the centre point of screen
 
-		vec3 halfres = {
+		v3f halfres = {
 			// take int x and bitshift 1 place to the right for x/2
 			ScreenWidth() >> 1,
 			ScreenHeight() >> 1,
@@ -605,16 +593,16 @@ public:
 
 	bool OnUserUpdate(float elapsedTime) override
 	{
-		vec3 up = { 0.0f,1.0f,0.0f };
-		vec3 target = { 0.0f,0.0f,1.0f };
+		v3f up = { 0.0f,1.0f,0.0f };
+		v3f target = { 0.0f,0.0f,1.0f };
 
 		matrix4x4 ninetyY = Matrix_RotAxisY(0.5f * PI);
 		matrix4x4 ninetyX = Matrix_RotAxisX(1.5f * PI);
-		vec3 r = Matrix_MultiplyVector(ninetyY, lookdir);
-		vec3 u = Matrix_MultiplyVector(ninetyX, lookdir);
-		vec3 vForward = Vector_Multiply(lookdir, 8.0f * elapsedTime);
-		vec3 vShoulderRail = Vector_Multiply(r, 8.0f * elapsedTime);
-		vec3 vBackRail = Vector_Multiply(u, 8.0f * elapsedTime);
+		v3f r = Matrix_MultiplyVector(ninetyY, lookdir);
+		v3f u = Matrix_MultiplyVector(ninetyX, lookdir);
+		v3f vForward = Vector_Multiply(lookdir, 8.0f * elapsedTime);
+		v3f vShoulderRail = Vector_Multiply(r, 8.0f * elapsedTime);
+		v3f vBackRail = Vector_Multiply(u, 8.0f * elapsedTime);
 
 		matrix4x4 y = Matrix_RotAxisY(eye.yaw);
 		matrix4x4 p = Matrix_RotAxisX(eye.pitch);
@@ -704,7 +692,7 @@ public:
 			triTransformed.p[2] = Matrix_MultiplyVector(matWorld, tri.p[2]);
 
 			// Calculate triangle Normal
-			vec3 normal, line1, line2;
+			v3f normal, line1, line2;
 
 			// Get lines either side of triangle
 			line1 = Vector_Subtract(triTransformed.p[1], triTransformed.p[0]);
@@ -717,13 +705,13 @@ public:
 			normal = Vector_Normalise(normal);
 
 			// Get Ray from triangle to camera
-			vec3 vCameraRay = Vector_Subtract(triTransformed.p[0], eye.pos);
+			v3f vCameraRay = Vector_Subtract(triTransformed.p[0], eye.pos);
 
 			// If ray is aligned with normal, then triangle is visible
 			if (Vector_DotProduct(normal, vCameraRay) < 0.0f)
 			{
 				// Illumination
-				vec3 light_direction = { 1.0f, 1.5f, 2.0f };
+				v3f light_direction = { 1.0f, 1.5f, 2.0f };
 				light_direction = Vector_Normalise(light_direction);
 
 				// How "aligned" are light direction and triangle surface normal?
@@ -774,7 +762,7 @@ public:
 					triProjected.p[2].y *= -1.0f;
 
 					// Offset verts into visible normalised space
-					vec3 vOffsetView = { 1,1,0 };
+					v3f vOffsetView = { 1,1,0 };
 					triProjected.p[0] = Vector_Add(triProjected.p[0], vOffsetView);
 					triProjected.p[1] = Vector_Add(triProjected.p[1], vOffsetView);
 					triProjected.p[2] = Vector_Add(triProjected.p[2], vOffsetView);
