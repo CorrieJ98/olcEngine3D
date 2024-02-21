@@ -9,9 +9,9 @@
 class Door
 {
 public:
-	Door(bool, bool, int, std::string);
+	Door(bool, bool, std::string,int);
 
-	void UnlockDoor(std::string);	// take key id string
+	bool UnlockDoor(std::string);	// take key id string
 	void OpenDoor(bool);			// check if unlocked
 
 	~Door();
@@ -35,7 +35,8 @@ public:
 	~Key();
 
 	void CreateKey();
-	void GenerateNewKeyID(int, char);
+
+	std::string GenerateNewKeyID(int);
 	std::string _GetKeyName();
 	std::string _GetKeyID();
 

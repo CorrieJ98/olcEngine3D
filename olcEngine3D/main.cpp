@@ -179,39 +179,6 @@ protected:
 private:
 };
 
-class Door : InteractableObject {
-public:
-	Door();
-	~Door();
-
-	void UnlockDoor() {
-		// take keyID and check for unlock bool
-	}
-
-	void OpenDoor(bool* isUnlocked) {
-		// open door
-	}
-
-protected:
-	bool isUnlocked = true;
-	bool isVertSliding = false; // true = slides upwards on open, false = slides right on open
-	bool isRemote = false; // true = opens with button, false = opens with interact
-private:
-};
-
-class Key : Door {
-public:
-	Key();
-	~Key();
-
-	void LinkDoorToKey(Door* door, Key* key) {
-
-	}
-
-protected:
-private:
-};
-
 class Character {
 public:
 	Character();

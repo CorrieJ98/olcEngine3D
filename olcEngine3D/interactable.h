@@ -33,7 +33,7 @@ private:
 
 };
 
-class InteractableObject	// buttons, doors, levers: things to press F to interact
+class InteractableObject	// buttons, doors, levers: F to interact
 {
 public:
 	InteractableObject();
