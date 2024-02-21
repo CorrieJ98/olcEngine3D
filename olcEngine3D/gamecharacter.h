@@ -9,6 +9,7 @@ public:
 	GameCharacter(std::string, int, int, float);
 
 	void TakeDamage(int);
+	void Heal(int);
 	bool IsAliveCheck();
 
 	int _GetHealth();

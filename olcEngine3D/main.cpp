@@ -220,8 +220,8 @@ public:
 private:
 	// ::::: VARIABLE INITIALISATION :::::
 	mesh testMesh;
-	matrix4x4 projection_matrix;
-	matrix4x4 identity_matrix;
+	mat4x4 projection_matrix;
+	mat4x4 identity_matrix;
 	camera eye;
 
 	v3f lookdir;
@@ -237,15 +237,15 @@ private:
 	}
 
 	// ::::: MATRIX & VECTOR MATH :::::
-	matrix4x4 Matrix_MakeIdentity() {
-		matrix4x4 id;
+	mat4x4 Matrix_MakeIdentity() {
+		mat4x4 id;
 		id.m[0][0] = 1.0f;
 		id.m[1][1] = 1.0f;
 		id.m[2][2] = 1.0f;
 		id.m[3][3] = 1.0f;
 		return id;
 	}
-	matrix4x4 Matrix_PointAt(v3f &pos, v3f &target, v3f &up){
+	mat4x4 Matrix_PointAt(v3f &pos, v3f &target, v3f &up){
 		// Calculate new forward (x) direction
 		v3f newFwd = Vector_Subtract(target, pos);
 		newFwd = Vector_Normalise(newFwd);
@@ -259,7 +259,7 @@ private:
 		v3f newRight = Vector_CrossProduct(newUp, newFwd);
 
 		// Construct Dimension and Translation Matrix
-		matrix4x4 m;
+		mat4x4 m;
 		m.m[0][0] = newRight.x;
 		m.m[0][1] = newRight.y;
 		m.m[0][2] = newRight.z;
@@ -278,9 +278,9 @@ private:
 		m.m[3][3] = 1.0f;
 		return m;
 	}
-	matrix4x4 Matrix_QuickInvert(matrix4x4 &m) // Only for Rotation/Translation Matrices
+	mat4x4 Matrix_QuickInvert(mat4x4 &m) // Only for Rotation/Translation Matrices
 	{
-		matrix4x4 matrix;
+		mat4x4 matrix;
 		matrix.m[0][0] = m.m[0][0]; matrix.m[0][1] = m.m[1][0]; matrix.m[0][2] = m.m[2][0]; matrix.m[0][3] = 0.0f;
 		matrix.m[1][0] = m.m[0][1]; matrix.m[1][1] = m.m[1][1]; matrix.m[1][2] = m.m[2][1]; matrix.m[1][3] = 0.0f;
 		matrix.m[2][0] = m.m[0][2]; matrix.m[2][1] = m.m[1][2]; matrix.m[2][2] = m.m[2][2]; matrix.m[2][3] = 0.0f;
@@ -290,8 +290,8 @@ private:
 		matrix.m[3][3] = 1.0f;
 		return matrix;
 	}
-	matrix4x4 Matrix_RotAxisX(float angleRad) {
-		matrix4x4 matRotX;
+	mat4x4 Matrix_RotAxisX(float angleRad) {
+		mat4x4 matRotX;
 		matRotX.m[0][0] = 1.0f;
 		matRotX.m[1][1] = cosf(angleRad);
 		matRotX.m[1][2] = sinf(angleRad);
@@ -300,8 +300,8 @@ private:
 		matRotX.m[3][3] = 1.0f;
 		return matRotX;
 	}
-	matrix4x4 Matrix_RotAxisZ(float angleRad) {
-		matrix4x4 matRotZ;
+	mat4x4 Matrix_RotAxisZ(float angleRad) {
+		mat4x4 matRotZ;
 		matRotZ.m[0][0] = cosf(angleRad);
 		matRotZ.m[0][1] = sinf(angleRad);
 		matRotZ.m[1][0] = -sinf(angleRad);
@@ -310,8 +310,8 @@ private:
 		matRotZ.m[3][3] = 1.0f;
 		return matRotZ;
 	}
-	matrix4x4 Matrix_RotAxisY(float angleRad) {
-		matrix4x4 matRotY;
+	mat4x4 Matrix_RotAxisY(float angleRad) {
+		mat4x4 matRotY;
 		matRotY.m[0][0] = cosf(angleRad);
 		matRotY.m[0][2] = sinf(angleRad);
 		matRotY.m[2][0] = -sinf(angleRad);
@@ -320,8 +320,8 @@ private:
 		matRotY.m[3][3] = 1.0f;
 		return matRotY;
 	}
-	matrix4x4 Matrix_MakeTranslate(float x, float y, float z) {
-		matrix4x4 matT;
+	mat4x4 Matrix_MakeTranslate(float x, float y, float z) {
+		mat4x4 matT;
 		matT.m[0][0] = 1.0f;
 		matT.m[1][1] = 1.0f;
 		matT.m[2][2] = 1.0f;
@@ -331,9 +331,9 @@ private:
 		matT.m[3][2] = z;
 		return matT;
 	}
-	matrix4x4 Matrix_MakeProjection(float fov, float aspect_ratio, float zNear, float zFar){
+	mat4x4 Matrix_MakeProjection(float fov, float aspect_ratio, float zNear, float zFar){
 		float fovRad = 1.0f / tanf(fov * 0.5f / 180.0f * PI);
-		matrix4x4 matProj;
+		mat4x4 matProj;
 		matProj.m[0][0] = aspect_ratio * fovRad;
 		matProj.m[1][1] = fovRad;
 		matProj.m[2][2] = zFar / (zFar - zNear);
@@ -342,14 +342,14 @@ private:
 		matProj.m[3][3] = 0.0f;
 		return matProj;
 	}
-	matrix4x4 Matrix_MultiplyMatrix(matrix4x4& m1, matrix4x4& m2) {
-		matrix4x4 mout;
+	mat4x4 Matrix_MultiplyMatrix(mat4x4& m1, mat4x4& m2) {
+		mat4x4 mout;
 		for (int c = 0; c < 4; c++)
 			for (int r = 0; r < 4; r++)
 				mout.m[r][c] = m1.m[r][0] * m2.m[0][c] + m1.m[r][1] * m2.m[1][c] + m1.m[r][2] * m2.m[2][c] + m1.m[r][3] * m2.m[3][c];
 		return mout;
 	}
-	v3f Matrix_MultiplyVector(matrix4x4& m, v3f& vin) {
+	v3f Matrix_MultiplyVector(mat4x4& m, v3f& vin) {
 		v3f vout;
 		vout.x = vin.x * m.m[0][0] + vin.y * m.m[1][0] + vin.z * m.m[2][0] + vin.w * m.m[3][0];
 		vout.y = vin.x * m.m[0][1] + vin.y * m.m[1][1] + vin.z * m.m[2][1] + vin.w * m.m[3][1];
@@ -563,32 +563,32 @@ public:
 		v3f up = { 0.0f,1.0f,0.0f };
 		v3f target = { 0.0f,0.0f,1.0f };
 
-		matrix4x4 ninetyY = Matrix_RotAxisY(0.5f * PI);
-		matrix4x4 ninetyX = Matrix_RotAxisX(1.5f * PI);
+		mat4x4 ninetyY = Matrix_RotAxisY(0.5f * PI);
+		mat4x4 ninetyX = Matrix_RotAxisX(1.5f * PI);
 		v3f r = Matrix_MultiplyVector(ninetyY, lookdir);
 		v3f u = Matrix_MultiplyVector(ninetyX, lookdir);
 		v3f vForward = Vector_Multiply(lookdir, 8.0f * elapsedTime);
 		v3f vShoulderRail = Vector_Multiply(r, 8.0f * elapsedTime);
 		v3f vBackRail = Vector_Multiply(u, 8.0f * elapsedTime);
 
-		matrix4x4 y = Matrix_RotAxisY(eye.yaw);
-		matrix4x4 p = Matrix_RotAxisX(eye.pitch);
+		mat4x4 y = Matrix_RotAxisY(eye.yaw);
+		mat4x4 p = Matrix_RotAxisX(eye.pitch);
 
-		matrix4x4 camMatrixRot = Matrix_RotAxisY(eye.yaw);
+		mat4x4 camMatrixRot = Matrix_RotAxisY(eye.yaw);
 		lookdir = Matrix_MultiplyVector(camMatrixRot, target);
 		target = Vector_Add(eye.pos, lookdir);
-		matrix4x4 camMatrix = Matrix_PointAt(eye.pos, target, up);
-		matrix4x4 matView = Matrix_QuickInvert(camMatrix);
+		mat4x4 camMatrix = Matrix_PointAt(eye.pos, target, up);
+		mat4x4 matView = Matrix_QuickInvert(camMatrix);
 
 		// ::::: ROTATION MATRIX :::::
-		matrix4x4 matRotY, matRotX;
+		mat4x4 matRotY, matRotX;
 		matRotY = Matrix_RotAxisY(eye.yaw);
 		matRotX = Matrix_RotAxisX(eye.pitch);
 
-		matrix4x4 matTranslation;
+		mat4x4 matTranslation;
 		matTranslation = Matrix_MakeTranslate(0.0f, 0.0f, camZOffset);
 
-		matrix4x4 matWorld;
+		mat4x4 matWorld;
 		matWorld = Matrix_MakeIdentity();
 		matWorld = Matrix_MultiplyMatrix(matRotY, matRotX);
 		matWorld = Matrix_MultiplyMatrix(matWorld, matTranslation);

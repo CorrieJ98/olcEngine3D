@@ -68,5 +68,11 @@
     <ClInclude Include="door.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="player.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="inventory.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

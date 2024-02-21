@@ -19,6 +19,7 @@ int GameCharacter::_GetHealth() { return curHP; }
 float GameCharacter::_GetMoveSpeed() { return moveSpeed; }
 
 void GameCharacter::TakeDamage(int damage) { curHP -= damage; }
+void GameCharacter::Heal(int) { curHP += damage; }
 bool GameCharacter::IsAliveCheck() { return curHP > 0; }
 
 #endif // !GAME_CHARACTER_CPP
