@@ -8,8 +8,6 @@
 class MV_Math
 {
 public:
-	MV_Math() {};
-
 	void Matrix_MakeIdentity(mat4x4&);
 	mat4x4 Matrix_PointAt(v3f&, v3f&, v3f&);
 	mat4x4 Matrix_QuickInvert(mat4x4&);

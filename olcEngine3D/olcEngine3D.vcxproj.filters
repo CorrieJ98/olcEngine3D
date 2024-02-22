@@ -39,6 +39,9 @@
     <ClCompile Include="door.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="mvmath.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="game.h">
@@ -52,9 +55,6 @@
     </ClInclude>
     <ClInclude Include="item.cpp">
       <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="matrix.h">
-      <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="olcConsoleGameEngine.h">
       <Filter>Header Files</Filter>
@@ -72,6 +72,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="inventory.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="mvmath.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

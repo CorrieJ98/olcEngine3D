@@ -15,5 +15,7 @@
 #include "player.h"
 #include "mvmath.h"
 #include <iostream>
+#include <algorithm>
+#include <vector>
 
 #endif

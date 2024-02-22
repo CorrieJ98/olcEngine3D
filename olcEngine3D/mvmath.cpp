@@ -4,9 +4,9 @@
 #include "mvmath.h"
 #include <algorithm>
 
-const float HALF_PI = 1.5707963267;
-const float PI = 3.1415926535;
-const float TAU = 6.2831853071;
+const double HALF_PI = 1.5707963267;
+const double PI = 3.1415926535;
+const double TAU = 6.2831853071;
 
 void MV_Math::Matrix_MakeIdentity(mat4x4& id)
 {
@@ -200,8 +200,7 @@ v3f MV_Math::Vector_IntersectPlane(v3f& plane_p, v3f& plane_n, v3f& lineStart, v
 	return Vector_Add(lineStart, lineToIntersect);
 }
 
-int MV_Math::Triangle_ClipAgainstPlane(v3f plane_p, v3f plane_n, triangle& in_tri, triangle& out_tri1, triangle& out_tri2)
-{
+int MV_Math::Triangle_ClipAgainstPlane(v3f plane_p, v3f plane_n, triangle& in_tri, triangle& out_tri1, triangle& out_tri2) {
 
 	// Make sure plane normal is indeed normal
 	plane_n = Vector_Normalise(plane_n);
@@ -299,6 +298,9 @@ int MV_Math::Triangle_ClipAgainstPlane(v3f plane_p, v3f plane_n, triangle& in_tr
 		out_tri2.p[2] = Vector_IntersectPlane(plane_p, plane_n, *inside_points[1], *outside_points[0]);
 
 		return 2; // Return two newly formed triangles which form a quad
+	}
+	
+	else { return NULL; }
 
 }
 

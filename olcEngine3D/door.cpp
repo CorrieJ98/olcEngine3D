@@ -12,7 +12,7 @@ Door::Door(bool t_isLocked, bool t_isRemote,std::string t_key_id, int t_remote_c
 
 
 bool Door::UnlockDoor(std::string key_id) {
-	
+	return true;
 }
 
 void Door::OpenDoor(bool isLocked) {
@@ -26,6 +26,7 @@ Key::Key(std::string t_name, std::string t_id) {
 }
 
 void Key::CreateKey() {
+	GenerateNewKeyID(id_length);
 }
 std::string Key::GenerateNewKeyID(int length) {
 	INTERACTABLE_ITEM_H::char_set;
@@ -34,5 +35,5 @@ std::string Key::GenerateNewKeyID(int length) {
 	std::string a;
 	return a;
 
-	// generate a random 8 digit alphanumeric key
+	// TODO generate a random 8 digit alphanumeric key
 }

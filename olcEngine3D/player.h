@@ -14,6 +14,7 @@ public:
 	void Interact(InteractableObject);
 	void PickUp(EquippableObject);
 	
+
 protected:
 
 private:
