@@ -1,9 +1,7 @@
-#pragma once
-
-#include "item.cpp"
-
 #ifndef INVENTORY_H
 #define INVENTORY_H
+
+#include "item.cpp"
 
 class Inventory
 {
@@ -18,4 +16,4 @@ public:
 private:
 	std::vector<int, int> inventory = { 16,16 };
 };
-#endif
+#endif // !INVENTORY_H

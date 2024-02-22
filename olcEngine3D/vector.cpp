@@ -1,7 +1,6 @@
 #ifndef VECTOR_CPP
 #define VECTOR_CPP
 
-
 struct v3f {
 	float x, y, z;
 	float w = 1.0f;
