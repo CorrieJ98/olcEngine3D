@@ -1,12 +1,4 @@
-#include "mesh.h"
-#include "vector.cpp"
-#include <string>
-#include <fstream>
-#include <strstream>
-#include <vector>
-
-#ifndef MESH_CPP
-#define MESH_CPP
+#include "include.h"
 
 using namespace std;
 
@@ -17,11 +9,11 @@ Mesh::Mesh(vector<triangle> t_tris) {
 	tris = t_tris;
 }
 
-bool Mesh::BuildMeshFromObjFile(std::string filename)
+void Mesh::BuildMeshFromObjFile(std::string filename)
 {
 	std::ifstream file(filename);
 	if (!file.is_open())
-		return false;
+		throw new exception;
 
 	// Local cache of verts
 	std::vector<v3f> verts;
@@ -54,9 +46,4 @@ bool Mesh::BuildMeshFromObjFile(std::string filename)
 			tris.push_back({ verts[f[0] - 1], verts[f[1] - 1], verts[f[2] - 1] });
 		}
 	}
-
-	return true;
 }
-
-
-#endif // !MESH_CPP

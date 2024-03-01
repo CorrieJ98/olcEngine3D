@@ -1,6 +1,3 @@
-#ifndef MV_MATH_CPP
-#define MV_MATH_CPP
-
 #include "mvmath.h"
 #include <algorithm>
 
@@ -303,5 +300,3 @@ int MV_Math::Triangle_ClipAgainstPlane(v3f plane_p, v3f plane_n, triangle& in_tr
 	else { return NULL; }
 
 }
-
-#endif // !MV_MATH_CPP

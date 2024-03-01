@@ -1,10 +1,14 @@
-#ifndef INVENTORY_H
-#define INVENTORY_H
+#pragma once
 
-#include "item.cpp"
+struct item {
+	std::string name;
+	int damage, health;
 
-class Inventory
-{
+	std::vector<int> size;
+};
+
+
+class Inventory{
 public:
 	Inventory(std::vector<int,int>);
 
@@ -16,4 +20,4 @@ public:
 private:
 	std::vector<int, int> inventory = { 16,16 };
 };
-#endif // !INVENTORY_H
+

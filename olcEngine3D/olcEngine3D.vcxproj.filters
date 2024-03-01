@@ -24,12 +24,6 @@
     <ClCompile Include="gamecharacter.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="matrix.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="vector.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="quaternion.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -52,9 +46,6 @@
     </ClInclude>
     <ClInclude Include="interactable.h">
       <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="item.cpp">
-      <Filter>Source Files</Filter>
     </ClInclude>
     <ClInclude Include="olcConsoleGameEngine.h">
       <Filter>Header Files</Filter>

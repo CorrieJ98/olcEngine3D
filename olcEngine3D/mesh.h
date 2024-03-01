@@ -1,21 +1,11 @@
 #pragma once
-#include <string>
-#include <vector>
-#include "vector.cpp"
-
-#ifndef MESH_H
-#define MESH_H
+#include "include.h"
 
 class Mesh
 {
 public:
-	Mesh(std::vector<triangle>);
+	Mesh(std::vector<triangle> t_tris);
 
 
-	bool BuildMeshFromObjFile(std::string);
-
-protected:
-private:
-
+	void BuildMeshFromObjFile(std::string);
 };
-#endif // !MESH_H

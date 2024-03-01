@@ -1,9 +1,22 @@
-#ifndef MV_MATH_H
-#define MV_MATH_H
+#pragma once
 
+struct mat4x4 {
+	float m[4][4] = { 0 };
+};
 
-#include "vector.cpp"
-#include "matrix.cpp"
+struct v3f {
+	float x = 0.0f;
+	float y = 0.0f;
+	float z = 0.0f;
+	float w = 1.0f;
+};
+
+struct triangle {
+	v3f p[3];
+
+	wchar_t sym;
+	short col;
+};
 
 class MV_Math
 {
@@ -29,8 +42,4 @@ public:
 	v3f Vector_IntersectPlane(v3f&, v3f&, v3f&, v3f&);
 	int Triangle_ClipAgainstPlane(v3f, v3f, triangle&, triangle&, triangle&);
 
-
-
 };
-
-#endif // !1

@@ -131,12 +131,10 @@
     <ClCompile Include="door.cpp" />
     <ClCompile Include="game.cpp" />
     <ClCompile Include="gamecharacter.cpp" />
-    <ClCompile Include="matrix.cpp" />
     <ClCompile Include="mesh.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="mvmath.cpp" />
     <ClCompile Include="quaternion.cpp" />
-    <ClCompile Include="vector.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="door.h" />
@@ -145,7 +143,6 @@
     <ClInclude Include="include.h" />
     <ClInclude Include="interactable.h" />
     <ClInclude Include="inventory.h" />
-    <ClInclude Include="item.cpp" />
     <ClInclude Include="mesh.h" />
     <ClInclude Include="mvmath.h" />
     <ClInclude Include="olcConsoleGameEngine.h" />
