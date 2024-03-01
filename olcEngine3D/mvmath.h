@@ -1,13 +1,12 @@
 #pragma once
+#include "mesh.h"
 
 struct mat4x4 {
-	float m[4][4] = { 0 };
+	float m[4][4];
 };
 
 struct v3f {
-	float x = 0.0f;
-	float y = 0.0f;
-	float z = 0.0f;
+	float x, y, z;
 	float w = 1.0f;
 };
 
@@ -17,6 +16,7 @@ struct triangle {
 	wchar_t sym;
 	short col;
 };
+
 
 class MV_Math
 {
@@ -41,5 +41,4 @@ public:
 	v3f Vector_CrossProduct(v3f&, v3f&);
 	v3f Vector_IntersectPlane(v3f&, v3f&, v3f&, v3f&);
 	int Triangle_ClipAgainstPlane(v3f, v3f, triangle&, triangle&, triangle&);
-
 };

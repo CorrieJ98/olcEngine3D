@@ -29,6 +29,4 @@
 //#include "gamecharacter.cpp"
 //#include "interactable.h"
 //#include "inventory.h"
-//#include "mesh.h"
-//#include "mesh.cpp"
 //#include "player.h"

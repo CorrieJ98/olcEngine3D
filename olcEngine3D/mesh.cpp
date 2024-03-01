@@ -1,19 +1,22 @@
-#include "include.h"
+#include "mesh.h"
+#include <fstream>
+#include <strstream>
+#include <string>
+#include <vector>
+#include "mvmath.cpp"
 
-using namespace std;
+std::vector<triangle> tris;
 
-vector<triangle> tris;
-
-Mesh::Mesh(vector<triangle> t_tris) {
-
-	tris = t_tris;
+Mesh::Mesh(std::vector<triangle> t_tris)
+{
+	t_tris = tris;
 }
 
-void Mesh::BuildMeshFromObjFile(std::string filename)
+bool Mesh::BuildMeshFromObjFile(std::string filename)
 {
 	std::ifstream file(filename);
 	if (!file.is_open())
-		throw new exception;
+		return false;
 
 	// Local cache of verts
 	std::vector<v3f> verts;
@@ -26,7 +29,7 @@ void Mesh::BuildMeshFromObjFile(std::string filename)
 		file.getline(line, 128);
 
 		char junk;
-		strstream s;
+		std::strstream s;
 		s << line;
 
 		// extract VERT values from obj then add to local cache
@@ -46,4 +49,6 @@ void Mesh::BuildMeshFromObjFile(std::string filename)
 			tris.push_back({ verts[f[0] - 1], verts[f[1] - 1], verts[f[2] - 1] });
 		}
 	}
+
+	return true;
 }

@@ -131,8 +131,8 @@
     <ClCompile Include="door.cpp" />
     <ClCompile Include="game.cpp" />
     <ClCompile Include="gamecharacter.cpp" />
-    <ClCompile Include="mesh.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="mesh.cpp" />
     <ClCompile Include="mvmath.cpp" />
     <ClCompile Include="quaternion.cpp" />
   </ItemGroup>
