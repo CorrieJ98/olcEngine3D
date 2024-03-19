@@ -1,13 +1,15 @@
 #pragma once
+#include "mvmath.h"
 #include <vector>
 #include <string>
-#include "mvmath.h"
 
 class Mesh
 {
 public:
-	Mesh(std::vector<triangle>);
+	Mesh(std::vector<triangle> tri);
 
 
 	bool BuildMeshFromObjFile(std::string);
+private:
+	triangle tri;
 };

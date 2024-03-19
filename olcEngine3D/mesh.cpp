@@ -3,7 +3,6 @@
 #include <strstream>
 #include <string>
 #include <vector>
-#include "mvmath.cpp"
 
 std::vector<triangle> tris;
 
