@@ -3,28 +3,29 @@
 #include <strstream>
 #include <algorithm>
 #include <iostream>
+#include "mvmath.h"
 
 using namespace std;
-
-struct vec3 {
-	float x = 0.0f;
-	float y = 0.0f;
-	float z = 0.0f;
-	float w = 1.0f;
-};
-struct triangle {
-	vec3 p[3];
-
-	wchar_t sym;
-	short col;
-};
-struct matrix4x4 {
-	float m[4][4] = { 0 };
-};
-struct camera {
-	vec3 pos;
-	float pitch, yaw, sensitivity;
-};
+//
+//struct vec3 {
+//	float x = 0.0f;
+//	float y = 0.0f;
+//	float z = 0.0f;
+//	float w = 1.0f;
+//};
+//struct triangle {
+//	vec3 p[3];
+//
+//	wchar_t sym;
+//	short col;
+//};
+//struct matrix4x4 {
+//	float m[4][4] = { 0 };
+//};
+//struct camera {
+//	vec3 pos;
+//	float pitch, yaw, sensitivity;
+//};
 struct mesh {
 
 	vector<triangle> tris;
