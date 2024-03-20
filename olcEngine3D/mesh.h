@@ -6,10 +6,8 @@
 class Mesh
 {
 public:
-	Mesh(std::vector<triangle> tri);
+	Mesh(std::vector<triangle> triangle);
 
 
 	bool BuildMeshFromObjFile(std::string);
-private:
-	triangle tri;
 };

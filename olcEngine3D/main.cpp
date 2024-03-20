@@ -1,6 +1,16 @@
-#include "include.h"
+#include <iostream>
+#include <fstream>
+#include <algorithm>
+#include <strstream>
+#include <string>
+#include <vector>
+#include "mvmath.h"
+#include "olcConsoleGameEngine.h"
+
 
 using namespace std;
+
+MV_Math mv;
 
 struct camera {
 	v3f pos;
@@ -52,32 +62,6 @@ struct mesh {
 	}
 };
 
-class Camera {
-public:
-	Camera();
-
-	v3f pos;
-	float pitch;
-	float yaw;
-	v3f lookAt;
-
-	void Yaw(float angle) {
-
-	}
-	void Pitch(float angle) {
-
-	}
-
-
-
-	~Camera();
-protected:
-	v3f fwd;
-	v3f up;
-	v3f right;
-private:
-};
-
 class olcEngine3D : public olcConsoleGameEngine
 {
 public:
@@ -86,6 +70,7 @@ public:
 		m_sAppName = L"Tankers 3D";
 	}
 
+	// namespace mv
 
 private:
 	// ::::: VARIABLE INITIALISATION :::::
@@ -161,7 +146,7 @@ public:
 		testMesh.LoadFromObjectFile(objects[1]);
 
 		// Projection Matrix
-		projection_matrix = MV_Math().Matrix_MakeProjection(90.0f, (float)ScreenHeight() / (float)ScreenWidth(), 0.01f, 1000.0f);
+		projection_matrix = mv.Matrix_MakeProjection(90.0f, (float)ScreenHeight() / (float)ScreenWidth(), 0.01f, 1000.0f);
 		return true;
 	}
 
@@ -170,37 +155,37 @@ public:
 		v3f up = { 0.0f,1.0f,0.0f };
 		v3f target = { 0.0f,0.0f,1.0f };
 
-		mat4x4 ninetyY = MV_Math().Matrix_RotAxisY(0.5f * PI);
-		mat4x4 ninetyX = MV_Math().Matrix_RotAxisX(1.5f * PI);
-		v3f r = MV_Math().Matrix_MultiplyVector(ninetyY, lookdir);
-		v3f u = MV_Math().Matrix_MultiplyVector(ninetyX, lookdir);
-		v3f vForward = MV_Math().Vector_Multiply(lookdir, 8.0f * elapsedTime);
-		v3f vShoulderRail = MV_Math().Vector_Multiply(r, 8.0f * elapsedTime);
-		v3f vBackRail = MV_Math().Vector_Multiply(u, 8.0f * elapsedTime);
+		mat4x4 ninetyY = mv.Matrix_RotAxisY(0.5f * PI);
+		mat4x4 ninetyX = mv.Matrix_RotAxisX(1.5f * PI);
+		v3f r = mv.Matrix_MultiplyVector(ninetyY, lookdir);
+		v3f u = mv.Matrix_MultiplyVector(ninetyX, lookdir);
+		v3f vForward = mv.Vector_Multiply(lookdir, 8.0f * elapsedTime);
+		v3f vShoulderRail = mv.Vector_Multiply(r, 8.0f * elapsedTime);
+		v3f vBackRail = mv.Vector_Multiply(u, 8.0f * elapsedTime);
 
-		mat4x4 y = MV_Math().Matrix_RotAxisY(eye.yaw);
-		mat4x4 p = MV_Math().Matrix_RotAxisX(eye.pitch);
+		mat4x4 y = mv.Matrix_RotAxisY(eye.yaw);
+		mat4x4 p = mv.Matrix_RotAxisX(eye.pitch);
 
-		mat4x4 camMatrixRot = MV_Math().Matrix_RotAxisY(eye.yaw);
-		lookdir = MV_Math().Matrix_MultiplyVector(camMatrixRot, target);
-		target = MV_Math().Vector_Add(eye.pos, lookdir);
-		mat4x4 camMatrix = MV_Math().Matrix_PointAt(eye.pos, target, up);
-		mat4x4 matView = MV_Math().Matrix_QuickInvert(camMatrix);
+		mat4x4 camMatrixRot = mv.Matrix_RotAxisY(eye.yaw);
+		lookdir = mv.Matrix_MultiplyVector(camMatrixRot, target);
+		target = mv.Vector_Add(eye.pos, lookdir);
+		mat4x4 camMatrix = mv.Matrix_PointAt(eye.pos, target, up);
+		mat4x4 matView = mv.Matrix_QuickInvert(camMatrix);
 
 		// ::::: ROTATION MATRIX :::::
 		mat4x4 matRotY, matRotX;
-		matRotY = MV_Math().Matrix_RotAxisY(eye.yaw);
-		matRotX = MV_Math().Matrix_RotAxisX(eye.pitch);
+		matRotY = mv.Matrix_RotAxisY(eye.yaw);
+		matRotX = mv.Matrix_RotAxisX(eye.pitch);
 
 		mat4x4 matTranslation;
-		matTranslation = MV_Math().Matrix_MakeTranslation(0.0f, 0.0f, camZOffset);
+		matTranslation = mv.Matrix_MakeTranslation(0.0f, 0.0f, camZOffset);
 
 		mat4x4 matWorld;
-		MV_Math().Matrix_MakeIdentity(matWorld);
+		mv.Matrix_MakeIdentity(matWorld);
 		
-		/*matWorld = MV_Math().Matrix_MakeIdentity();
-		matWorld = MV_Math().Matrix_MultiplyMatrix(matRotY, matRotX);
-		matWorld = MV_Math().Matrix_MultiplyMatrix(matWorld, matTranslation);*/
+		/*matWorld = mv.Matrix_MakeIdentity();
+		matWorld = mv.Matrix_MultiplyMatrix(matRotY, matRotX);
+		matWorld = mv.Matrix_MultiplyMatrix(matWorld, matTranslation);*/
 
 
 
@@ -214,16 +199,16 @@ public:
 			eye.pos.y -= 8.0f * elapsedTime;
 
 		if (GetKey(L'A').bHeld)	// Left
-			eye.pos = MV_Math().Vector_Subtract(eye.pos, vShoulderRail);
+			eye.pos = mv.Vector_Subtract(eye.pos, vShoulderRail);
 
 		if (GetKey(L'D').bHeld)	// Right
-			eye.pos = MV_Math().Vector_Add(eye.pos, vShoulderRail);
+			eye.pos = mv.Vector_Add(eye.pos, vShoulderRail);
 
 		if (GetKey(L'W').bHeld)	// Forward
-			eye.pos = MV_Math().Vector_Add(eye.pos, vForward);
+			eye.pos = mv.Vector_Add(eye.pos, vForward);
 
 		if (GetKey(L'S').bHeld) // Back
-			eye.pos = MV_Math().Vector_Subtract(eye.pos, vForward);
+			eye.pos = mv.Vector_Subtract(eye.pos, vForward);
 
 
 		// Camera Keyboard
@@ -239,15 +224,15 @@ public:
 		if (GetKey(VK_DOWN).bHeld)	// Pitch Down
 			eye.pitch += 2.0f * elapsedTime;
 
-		// Camera Mouse
-		CursorManager(GetMouseX(), GetMouseY(), mouseX, mouseY, 1.0f);
-		if (mouseX != (ScreenWidth() >> 1)) {
-			eye.yaw += mouseX;
-		}
+		//// Camera Mouse
+		//CursorManager(GetMouseX(), GetMouseY(), mouseX, mouseY, 1.0f);
+		//if (mouseX != (ScreenWidth() >> 1)) {
+		//	eye.yaw += mouseX;
+		//}
 
-		if (mouseY != (ScreenHeight() >> 1)) {
-			eye.pitch += mouseY;
-		};
+		//if (mouseY != (ScreenHeight() >> 1)) {
+		//	eye.pitch += mouseY;
+		//};
 
 
 		// Clear screen
@@ -263,35 +248,35 @@ public:
 			triangle triProjected, triTransformed, triViewed;
 
 			// World Matrix Transform
-			triTransformed.p[0] = MV_Math().Matrix_MultiplyVector(matWorld, tri.p[0]);
-			triTransformed.p[1] = MV_Math().Matrix_MultiplyVector(matWorld, tri.p[1]);
-			triTransformed.p[2] = MV_Math().Matrix_MultiplyVector(matWorld, tri.p[2]);
+			triTransformed.p[0] = mv.Matrix_MultiplyVector(matWorld, tri.p[0]);
+			triTransformed.p[1] = mv.Matrix_MultiplyVector(matWorld, tri.p[1]);
+			triTransformed.p[2] = mv.Matrix_MultiplyVector(matWorld, tri.p[2]);
 
 			// Calculate triangle Normal
 			v3f normal, line1, line2;
 
 			// Get lines either side of triangle
-			line1 = MV_Math().Vector_Subtract(triTransformed.p[1], triTransformed.p[0]);
-			line2 = MV_Math().Vector_Subtract(triTransformed.p[2], triTransformed.p[0]);
+			line1 = mv.Vector_Subtract(triTransformed.p[1], triTransformed.p[0]);
+			line2 = mv.Vector_Subtract(triTransformed.p[2], triTransformed.p[0]);
 
 			// Take cross product of lines to get normal to triangle surface
-			normal = MV_Math().Vector_CrossProduct(line1, line2);
+			normal = mv.Vector_CrossProduct(line1, line2);
 
 			// You normally need to normalise a normal!
-			normal = MV_Math().Vector_Normalise(normal);
+			normal = mv.Vector_Normalise(normal);
 
 			// Get Ray from triangle to camera
-			v3f vCameraRay = MV_Math().Vector_Subtract(triTransformed.p[0], eye.pos);
+			v3f vCameraRay = mv.Vector_Subtract(triTransformed.p[0], eye.pos);
 
 			// If ray is aligned with normal, then triangle is visible
-			if (MV_Math().Vector_DotProduct(normal, vCameraRay) < 0.0f)
+			if (mv.Vector_DotProduct(normal, vCameraRay) < 0.0f)
 			{
 				// Illumination
 				v3f light_direction = { 1.0f, 1.5f, 2.0f };
-				light_direction = MV_Math().Vector_Normalise(light_direction);
+				light_direction = mv.Vector_Normalise(light_direction);
 
 				// How "aligned" are light direction and triangle surface normal?
-				float dp = max(0.1f, MV_Math().Vector_DotProduct(light_direction, normal));
+				float dp = max(0.1f, mv.Vector_DotProduct(light_direction, normal));
 
 				// Choose console colours as required (much easier with RGB)
 				CHAR_INFO c = GetColour(dp);
@@ -299,9 +284,9 @@ public:
 				triTransformed.sym = c.Char.UnicodeChar;
 
 				// Convert World Space --> View Space
-				triViewed.p[0] = MV_Math().Matrix_MultiplyVector(matView, triTransformed.p[0]);
-				triViewed.p[1] = MV_Math().Matrix_MultiplyVector(matView, triTransformed.p[1]);
-				triViewed.p[2] = MV_Math().Matrix_MultiplyVector(matView, triTransformed.p[2]);
+				triViewed.p[0] = mv.Matrix_MultiplyVector(matView, triTransformed.p[0]);
+				triViewed.p[1] = mv.Matrix_MultiplyVector(matView, triTransformed.p[1]);
+				triViewed.p[2] = mv.Matrix_MultiplyVector(matView, triTransformed.p[2]);
 				triViewed.sym = triTransformed.sym;
 				triViewed.col = triTransformed.col;
 
@@ -309,25 +294,25 @@ public:
 				// additional triangles. 
 				int nClippedTriangles = 0;
 				triangle clipped[2];
-				nClippedTriangles = MV_Math().Triangle_ClipAgainstPlane({ 0.0f, 0.0f, 0.1f }, { 0.0f, 0.0f, 1.0f }, triViewed, clipped[0], clipped[1]);
+				nClippedTriangles = mv.Triangle_ClipAgainstPlane({ 0.0f, 0.0f, 0.1f }, { 0.0f, 0.0f, 1.0f }, triViewed, clipped[0], clipped[1]);
 
 				// We may end up with multiple triangles form the clip, so project as
 				// required
 				for (int n = 0; n < nClippedTriangles; n++)
 				{
 					// Project triangles from 3D --> 2D
-					triProjected.p[0] = MV_Math().Matrix_MultiplyVector(projection_matrix, clipped[n].p[0]);
-					triProjected.p[1] = MV_Math().Matrix_MultiplyVector(projection_matrix, clipped[n].p[1]);
-					triProjected.p[2] = MV_Math().Matrix_MultiplyVector(projection_matrix, clipped[n].p[2]);
+					triProjected.p[0] = mv.Matrix_MultiplyVector(projection_matrix, clipped[n].p[0]);
+					triProjected.p[1] = mv.Matrix_MultiplyVector(projection_matrix, clipped[n].p[1]);
+					triProjected.p[2] = mv.Matrix_MultiplyVector(projection_matrix, clipped[n].p[2]);
 					triProjected.col = clipped[n].col;
 					triProjected.sym = clipped[n].sym;
 
 					// Scale into view, we moved the normalising into cartesian space
 					// out of the matrix.vector function from the previous videos, so
 					// do this manually
-					triProjected.p[0] = MV_Math().Vector_Divide(triProjected.p[0], triProjected.p[0].w);
-					triProjected.p[1] = MV_Math().Vector_Divide(triProjected.p[1], triProjected.p[1].w);
-					triProjected.p[2] = MV_Math().Vector_Divide(triProjected.p[2], triProjected.p[2].w);
+					triProjected.p[0] = mv.Vector_Divide(triProjected.p[0], triProjected.p[0].w);
+					triProjected.p[1] = mv.Vector_Divide(triProjected.p[1], triProjected.p[1].w);
+					triProjected.p[2] = mv.Vector_Divide(triProjected.p[2], triProjected.p[2].w);
 
 					// X/Y are inverted so put them back
 					triProjected.p[0].x *= -1.0f;
@@ -339,9 +324,9 @@ public:
 
 					// Offset verts into visible normalised space
 					v3f vOffsetView = { 1,1,0 };
-					triProjected.p[0] = MV_Math().Vector_Add(triProjected.p[0], vOffsetView);
-					triProjected.p[1] = MV_Math().Vector_Add(triProjected.p[1], vOffsetView);
-					triProjected.p[2] = MV_Math().Vector_Add(triProjected.p[2], vOffsetView);
+					triProjected.p[0] = mv.Vector_Add(triProjected.p[0], vOffsetView);
+					triProjected.p[1] = mv.Vector_Add(triProjected.p[1], vOffsetView);
+					triProjected.p[2] = mv.Vector_Add(triProjected.p[2], vOffsetView);
 					triProjected.p[0].x *= 0.5f * (float)ScreenWidth();
 					triProjected.p[0].y *= 0.5f * (float)ScreenHeight();
 					triProjected.p[1].x *= 0.5f * (float)ScreenWidth();
@@ -392,10 +377,10 @@ public:
 					// comment is almost completely and utterly justified
 					switch (p)
 					{
-					case 0:	nTrisToAdd = MV_Math().Triangle_ClipAgainstPlane({ 0.0f, 0.0f, 0.0f }, { 0.0f, 1.0f, 0.0f }, test, clipped[0], clipped[1]); break;
-					case 1:	nTrisToAdd = MV_Math().Triangle_ClipAgainstPlane({ 0.0f, (float)ScreenHeight() - 1, 0.0f }, { 0.0f, -1.0f, 0.0f }, test, clipped[0], clipped[1]); break;
-					case 2:	nTrisToAdd = MV_Math().Triangle_ClipAgainstPlane({ 0.0f, 0.0f, 0.0f }, { 1.0f, 0.0f, 0.0f }, test, clipped[0], clipped[1]); break;
-					case 3:	nTrisToAdd = MV_Math().Triangle_ClipAgainstPlane({ (float)ScreenWidth() - 1, 0.0f, 0.0f }, { -1.0f, 0.0f, 0.0f }, test, clipped[0], clipped[1]); break;
+					case 0:	nTrisToAdd = mv.Triangle_ClipAgainstPlane({ 0.0f, 0.0f, 0.0f }, { 0.0f, 1.0f, 0.0f }, test, clipped[0], clipped[1]); break;
+					case 1:	nTrisToAdd = mv.Triangle_ClipAgainstPlane({ 0.0f, (float)ScreenHeight() - 1, 0.0f }, { 0.0f, -1.0f, 0.0f }, test, clipped[0], clipped[1]); break;
+					case 2:	nTrisToAdd = mv.Triangle_ClipAgainstPlane({ 0.0f, 0.0f, 0.0f }, { 1.0f, 0.0f, 0.0f }, test, clipped[0], clipped[1]); break;
+					case 3:	nTrisToAdd = mv.Triangle_ClipAgainstPlane({ (float)ScreenWidth() - 1, 0.0f, 0.0f }, { -1.0f, 0.0f, 0.0f }, test, clipped[0], clipped[1]); break;
 					}
 
 					// Clipping may yield a variable number of triangles, so
@@ -422,8 +407,8 @@ public:
 
 int main()
 {
-	olcEngine3D tankers;
-	if (tankers.ConstructConsole(256, 240, 4, 4))
-		tankers.Start();
+	olcEngine3D demo;
+	if (demo.ConstructConsole(256, 240, 4, 4))
+		demo.Start();
     return 0;
 }
