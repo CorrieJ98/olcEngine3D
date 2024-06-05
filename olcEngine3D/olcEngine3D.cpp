@@ -92,7 +92,6 @@ public:
 private:
 	// ::::: VARIABLE INITIALISATION :::::
 	mesh testMesh;
-	mesh spaceship;
 	matrix4x4 projection_matrix;
 	camera eye;
 	float camZOffset = 6.0f;
@@ -443,8 +442,7 @@ public:
 	bool OnUserCreate() override
 	{
 		// .obj file import
-		testMesh.LoadFromObjectFile(objects[0], {0.0f,0.0f,0.0f});
-		spaceship.LoadFromObjectFile(objects[2], { 10.0f,5.0f,-7.0f });
+		testMesh.LoadFromObjectFile(objects[1], {0.0f,0.0f,0.0f});
 		
 
 		// Projection Matrix
@@ -573,6 +571,8 @@ public:
 				triViewed.p[0] = Matrix_MultiplyVector(matView, triTransformed.p[0]);
 				triViewed.p[1] = Matrix_MultiplyVector(matView, triTransformed.p[1]);
 				triViewed.p[2] = Matrix_MultiplyVector(matView, triTransformed.p[2]);
+				triViewed.sym = triTransformed.sym;
+				triViewed.col = triTransformed.col;
 
 				// Clip viewed triangle against near plane. Could form 2 additional tris
 				int nClippedTriangles = 0;
@@ -663,7 +663,7 @@ public:
 					case 2:	nTrisToAdd = Triangle_ClipAgainstPlane({ 0.0f, 0.0f, 0.0f }, { 1.0f, 0.0f, 0.0f }, test, clipped[0], clipped[1]); break;
 					case 3:	nTrisToAdd = Triangle_ClipAgainstPlane({ (float)ScreenWidth() - 1, 0.0f, 0.0f }, { -1.0f, 0.0f, 0.0f }, test, clipped[0], clipped[1]); break;
 					}
-
+					
 					// Clipping may yield a variable number of triangles, so
 					// add these new ones to the back of the queue for subsequent
 					// clipping against next planes
@@ -672,13 +672,11 @@ public:
 				}
 				nNewTriangles = listTriangles.size();
 			}
-
-
 			// Draw the transformed, viewed, clipped, projected, sorted, clipped triangles
 			for (auto& t : listTriangles)
 			{
 				FillTriangle(t.p[0].x, t.p[0].y, t.p[1].x, t.p[1].y, t.p[2].x, t.p[2].y, t.sym, t.col);
-				DrawTriangle(t.p[0].x, t.p[0].y, t.p[1].x, t.p[1].y, t.p[2].x, t.p[2].y, PIXEL_SOLID, FG_BLACK);
+				//DrawTriangle(t.p[0].x, t.p[0].y, t.p[1].x, t.p[1].y, t.p[2].x, t.p[2].y, PIXEL_SOLID, FG_BLACK);
 			}
 		}
 
