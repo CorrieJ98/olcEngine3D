@@ -17,20 +17,20 @@ struct triangle {
 	short col;
 };
 
-const double HALF_PI = 1.5707963267;
+const double PI_2 = 1.5707963267;
 const double PI = 3.1415926535;
 const double TAU = 6.2831853071;
 
 class MV_Math
 	{
-	public:/*
-		void Matrix_MakeIdentity(mat4x4&);
+	public:
+		mat4x4 Matrix_MakeIdentity();
 		mat4x4 Matrix_PointAt(v3f&, v3f&, v3f&);
 		mat4x4 Matrix_QuickInvert(mat4x4&);
-		mat4x4 Matrix_RotAxisX(float);
-		mat4x4 Matrix_RotAxisY(float);
-		mat4x4 Matrix_RotAxisZ(float);
-		mat4x4 Matrix_MakeTranslation(float, float, float);
+		mat4x4 Matrix_RotAxisX(float m_angle);
+		mat4x4 Matrix_RotAxisY(float m_angle);
+		mat4x4 Matrix_RotAxisZ(float m_angle);
+		mat4x4 Matrix_MakeTranslation(float x, float y, float z);
 		mat4x4 Matrix_MakeProjection(float, float, float, float);
 		mat4x4 Matrix_MultiplyMatrix(mat4x4&, mat4x4&);
 		v3f Matrix_MultiplyVector(mat4x4&, v3f&);
@@ -43,49 +43,11 @@ class MV_Math
 		v3f Vector_Normalise(v3f&);
 		v3f Vector_CrossProduct(v3f&, v3f&);
 		v3f Vector_IntersectPlane(v3f&, v3f&, v3f&, v3f&);
-		int Triangle_ClipAgainstPlane(v3f, v3f, triangle&, triangle&, triangle&);*/
+		int Triangle_ClipAgainstPlane(v3f, v3f, triangle&, triangle&, triangle&);
 
-		void Matrix_MakeIdentity(mat4x4& id)
-		{
-			id.m[0][0] = 1.0f;
-			id.m[1][1] = 1.0f;
-			id.m[2][2] = 1.0f;
-			id.m[3][3] = 1.0f;
-		}
-
-		mat4x4 Matrix_PointAt(v3f& pos, v3f& target, v3f& up)
-		{// Calculate new forward (x) direction
-			v3f newFwd = Vector_Subtract(target, pos);
-			newFwd = Vector_Normalise(newFwd);
-
-			// Calculate new up (y) direction
-			v3f a = Vector_Multiply(newFwd, Vector_DotProduct(up, newFwd));
-			v3f newUp = Vector_Subtract(up, a);
-			newUp = Vector_Normalise(newUp);
-
-			// Calculate new right(z) direction
-			v3f newRight = Vector_CrossProduct(newUp, newFwd);
-
-			// Construct Dimension and Translation Matrix
-			mat4x4 m;
-			m.m[0][0] = newRight.x;
-			m.m[0][1] = newRight.y;
-			m.m[0][2] = newRight.z;
-			m.m[0][3] = 0.0f;
-			m.m[1][0] = newUp.x;
-			m.m[1][1] = newUp.y;
-			m.m[1][2] = newUp.z;
-			m.m[1][3] = 0.0f;
-			m.m[2][0] = newFwd.x;
-			m.m[2][1] = newFwd.y;
-			m.m[2][2] = newFwd.z;
-			m.m[2][3] = 0.0f;
-			m.m[3][0] = pos.x;
-			m.m[3][1] = pos.y;
-			m.m[3][2] = pos.z;
-			m.m[3][3] = 1.0f;
-			return m;
-		}
+		/*
+		
+		
 
 		mat4x4 Matrix_QuickInvert(mat4x4& m)
 		{
@@ -338,6 +300,6 @@ class MV_Math
 			}
 
 			else { return NULL; }
-
-		}
+			
+		}*/
 	};

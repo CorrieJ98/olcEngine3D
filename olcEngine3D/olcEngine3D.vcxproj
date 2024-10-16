@@ -133,20 +133,14 @@
     <ClCompile Include="gamecharacter.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="mesh.cpp" />
+    <ClCompile Include="mvmath.cpp" />
     <ClCompile Include="quaternion.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="door.h" />
-    <ClInclude Include="game.h" />
-    <ClInclude Include="gamecharacter.h" />
-    <ClInclude Include="include.h" />
-    <ClInclude Include="interactable.h" />
-    <ClInclude Include="inventory.h" />
     <ClInclude Include="mesh.h" />
     <ClInclude Include="mvmath.h" />
     <ClInclude Include="olcConsoleGameEngine.h" />
     <ClInclude Include="player.h" />
-    <ClInclude Include="quaternion.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
